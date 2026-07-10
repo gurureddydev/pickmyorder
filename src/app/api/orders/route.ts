@@ -18,6 +18,8 @@ const orderSchema = z.object({
   destPin: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
   totalAmount: z.coerce.number().min(0, "Invalid amount"),
   courierPartnerId: z.string().min(1, "Courier partner required"),
+  paymentMethod: z.string().optional(),
+  paymentStatus: z.string().optional(),
 });
 
 export async function GET(request: Request) {
@@ -69,6 +71,8 @@ export async function POST(request: Request) {
       destPin,
       totalAmount,
       courierPartnerId,
+      paymentMethod = "PREPAID",
+      paymentStatus = "PAID",
     } = parsed.data;
 
     // 1. Create a dummy Quote record for DB integrity
@@ -114,7 +118,8 @@ export async function POST(request: Request) {
         destState,
         destPin,
         totalAmount,
-        paymentStatus: "PAID", // Default to paid for simplify test checkout
+        paymentMethod,
+        paymentStatus,
         invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
       },
     });

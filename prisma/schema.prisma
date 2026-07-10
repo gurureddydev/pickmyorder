@@ -211,6 +211,7 @@ model Order {
   destPin          String
   totalAmount      Float
   paymentId        String?
+  paymentMethod    String   @default("PREPAID") // PREPAID, CASH_ON_DELIVERY
   paymentStatus    String   @default("PENDING") // PENDING, PAID, FAILED
   invoiceNumber    String?  @unique
 

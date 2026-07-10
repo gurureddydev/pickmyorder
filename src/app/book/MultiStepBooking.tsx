@@ -40,8 +40,11 @@ export default function MultiStepBooking() {
   const [quote, setQuote] = useState<QuoteDetails | null>(null);
   const [baseForm, setBaseForm] = useState<FormState | null>(null);
   const [step, setStep] = useState(1);
+  const [completedOrder, setCompletedOrder] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [showRazorpayMock, setShowRazorpayMock] = useState(false);
 
   // Step 1: Sender & Receiver Details
   const [sender, setSender] = useState({ name: "", company: "", phone: "", whatsapp: "", email: "", address: "", landmark: "", city: "", state: "", pin: "", instructions: "", date: "", timeSlot: "" });
@@ -108,15 +111,56 @@ export default function MultiStepBooking() {
     setStep(s => s - 1);
   };
 
-  const handlePayment = async () => {
+  const handlePayment = () => {
+    setShowPaymentModal(true);
+  };
+
+  const submitOrder = async (method: string, status: string) => {
     setLoading(true);
     setError("");
-    // Simulate API call and payment gateway
-    setTimeout(() => {
+    try {
+      const payload = {
+        pickupName: sender.name,
+        pickupPhone: sender.phone,
+        pickupAddress: sender.address,
+        pickupCity: sender.city || "Unknown",
+        pickupState: sender.state || "Unknown",
+        pickupPin: sender.pin || baseForm?.pickupPin,
+        destName: receiver.name,
+        destPhone: receiver.phone,
+        destAddress: receiver.address,
+        destCity: receiver.city || "Unknown",
+        destState: receiver.state || "Unknown",
+        destPin: receiver.pin || baseForm?.destPin,
+        totalAmount: quote!.total + (pkg.packing ? 50 : 0) + (pkg.insurance ? 150 : 0),
+        courierPartnerId: quote!.courierId,
+        paymentMethod: method,
+        paymentStatus: status
+      };
+
+      const res = await fetch("/api/orders", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        setCompletedOrder(data.order);
+        setStep(5);
+        setShowPaymentModal(false);
+        setShowRazorpayMock(false);
+      } else {
+        setError(data.error || "Failed to create order");
+      }
+    } catch (e) {
+      setError("An error occurred during order creation.");
+    } finally {
       setLoading(false);
-      setStep(5); // Success step
-    }, 1500);
+    }
   };
+
+  const handleCashPayment = () => submitOrder("CASH_ON_PICKUP", "PENDING");
+  const handleRazorpayPayment = () => submitOrder("RAZORPAY_ONLINE", "PAID");
 
   if (!isClient) return <div className="min-h-[60vh] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#FF7A00] border-t-transparent rounded-full animate-spin"></div></div>;
 
@@ -133,8 +177,8 @@ export default function MultiStepBooking() {
     );
   }
 
-  if (step === 5) {
-    return <BookingSuccess quote={quote} />;
+  if (step === 5 && completedOrder) {
+    return <BookingSuccess quote={quote} order={completedOrder} />;
   }
 
   return (
@@ -262,6 +306,8 @@ export default function MultiStepBooking() {
                 <div className="sm:col-span-2">
                   <Input label="Complete Address *" value={sender.address} onChange={(e: any) => setSender({...sender, address: e})} placeholder="House/Flat No, Building, Street" />
                 </div>
+                <Input label="City" value={sender.city} onChange={(e: any) => setSender({...sender, city: e})} placeholder="City" />
+                <Input label="State" value={sender.state} onChange={(e: any) => setSender({...sender, state: e})} placeholder="State" />
               </div>
 
               <div className="mb-6 flex items-center justify-between border-t border-gray-100 pt-6">
@@ -283,6 +329,8 @@ export default function MultiStepBooking() {
                 <div className="sm:col-span-2">
                   <Input label="Complete Address *" value={receiver.address} onChange={(e: any) => setReceiver({...receiver, address: e})} placeholder="House/Flat No, Building, Street" />
                 </div>
+                <Input label="City" value={receiver.city} onChange={(e: any) => setReceiver({...receiver, city: e})} placeholder="City" />
+                <Input label="State" value={receiver.state} onChange={(e: any) => setReceiver({...receiver, state: e})} placeholder="State" />
               </div>
             </motion.div>
           )}
@@ -449,10 +497,64 @@ export default function MultiStepBooking() {
           </div>
         )}
       </div>
+      {/* Payment Modals */}
+      <AnimatePresence>
+        {showPaymentModal && (
+          <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
+            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.95 }} className="bg-white rounded-3xl p-6 sm:p-10 w-full max-w-md shadow-2xl relative">
+              <button onClick={() => { setShowPaymentModal(false); setShowRazorpayMock(false); }} className="absolute top-4 right-4 text-gray-400 hover:text-gray-900 bg-gray-100 w-8 h-8 rounded-full flex items-center justify-center cursor-pointer transition-colors">×</button>
+              
+              {!showRazorpayMock ? (
+                <>
+                  <div className="w-16 h-16 bg-[#FF7A00]/10 text-[#FF7A00] rounded-full flex items-center justify-center mx-auto mb-4">
+                    <ShieldCheck className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-2xl font-black text-center text-gray-900 mb-2">Select Payment Method</h3>
+                  <p className="text-center text-gray-500 text-sm mb-8">Choose how you'd like to pay for your shipment.</p>
+                  
+                  <div className="space-y-4">
+                    <button onClick={handleCashPayment} disabled={loading} className="w-full border-2 border-gray-200 hover:border-[#FF7A00] rounded-2xl p-4 flex items-center gap-4 transition-all hover:bg-[#FF7A00]/5 text-left group cursor-pointer">
+                      <div className="w-12 h-12 bg-gray-100 group-hover:bg-white rounded-xl flex items-center justify-center text-xl">💵</div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">Cash on Pickup</h4>
+                        <p className="text-xs text-gray-500">Pay directly to our executive</p>
+                      </div>
+                    </button>
+                    
+                    <button onClick={() => setShowRazorpayMock(true)} disabled={loading} className="w-full border-2 border-gray-200 hover:border-[#FF7A00] rounded-2xl p-4 flex items-center gap-4 transition-all hover:bg-[#FF7A00]/5 text-left group cursor-pointer">
+                      <div className="w-12 h-12 bg-gray-100 group-hover:bg-white rounded-xl flex items-center justify-center text-xl">💳</div>
+                      <div>
+                        <h4 className="font-bold text-gray-900">Online / QR Code</h4>
+                        <p className="text-xs text-gray-500">Razorpay Secure Checkout</p>
+                      </div>
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <div className="text-center">
+                  <div className="w-16 h-16 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <ShieldCheck className="w-8 h-8" />
+                  </div>
+                  <h3 className="text-xl font-black text-gray-900 mb-2">Razorpay Test Mode</h3>
+                  <p className="text-gray-500 text-sm mb-6">Scan the mock QR code or click simulate to proceed.</p>
+                  
+                  <div className="w-48 h-48 bg-gray-100 border-2 border-dashed border-gray-300 rounded-2xl mx-auto mb-8 flex items-center justify-center text-gray-400 font-bold">
+                    [ MOCK QR CODE ]
+                  </div>
+                  
+                  <button onClick={handleRazorpayPayment} disabled={loading} className="w-full bg-[#111827] text-white font-bold py-4 rounded-xl flex items-center justify-center gap-2 hover:bg-[#FF7A00] transition-colors cursor-pointer">
+                    {loading ? <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div> : "Simulate Successful Payment"}
+                  </button>
+                  <button onClick={() => setShowRazorpayMock(false)} className="mt-4 text-sm text-gray-500 hover:underline cursor-pointer">Go Back</button>
+                </div>
+              )}
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
-
 // Helper Components
 function Input({ label, value, onChange, placeholder, type = "text", maxLength }: any) {
   return (

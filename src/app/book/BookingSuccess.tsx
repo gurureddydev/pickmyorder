@@ -4,7 +4,7 @@ import Link from "next/link";
 import confetti from "canvas-confetti";
 import { useEffect } from "react";
 
-export default function BookingSuccess({ quote }: { quote: any }) {
+export default function BookingSuccess({ quote, order }: { quote: any, order: any }) {
   useEffect(() => {
     confetti({
       particleCount: 150,
@@ -14,8 +14,21 @@ export default function BookingSuccess({ quote }: { quote: any }) {
     });
   }, []);
 
-  const bookingId = "PMO" + Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
-  const trackingNo = quote.courierCode.substring(0, 3).toUpperCase() + Math.floor(Math.random() * 10000000000).toString();
+  const bookingId = order?.orderNumber || "PMO" + Math.floor(Math.random() * 100000000).toString().padStart(8, '0');
+  const trackingNo = order?.awbNumber || quote.courierCode.substring(0, 3).toUpperCase() + Math.floor(Math.random() * 10000000000).toString();
+
+  const handleDownload = (type: string) => {
+    const text = type === "invoice" ? `Invoice for ${bookingId}\nAmount: ${order?.totalAmount}\nAWB: ${trackingNo}` : `Shipping Label\nBooking: ${bookingId}\nAWB: ${trackingNo}\nDestination: ${order?.destPin}`;
+    const blob = new Blob([text], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${bookingId}_${type}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <motion.div 
@@ -59,21 +72,21 @@ export default function BookingSuccess({ quote }: { quote: any }) {
       </div>
 
       <div className="grid sm:grid-cols-2 gap-4 mb-8">
-        <button className="flex items-center justify-center gap-2 border-2 border-gray-200 text-gray-700 font-bold py-3.5 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors">
+        <button onClick={() => handleDownload('invoice')} className="flex items-center justify-center gap-2 border-2 border-gray-200 text-gray-700 font-bold py-3.5 rounded-xl hover:border-gray-300 hover:bg-gray-50 transition-colors cursor-pointer">
           <Download className="w-5 h-5" /> Download Invoice
         </button>
-        <button className="flex items-center justify-center gap-2 border-2 border-[#111827] bg-[#111827] text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition-colors">
+        <button onClick={() => handleDownload('label')} className="flex items-center justify-center gap-2 border-2 border-[#111827] bg-[#111827] text-white font-bold py-3.5 rounded-xl hover:bg-gray-800 transition-colors cursor-pointer">
           <Download className="w-5 h-5" /> Download Label
         </button>
       </div>
 
       <div className="flex flex-wrap justify-center gap-6 pt-6 border-t border-gray-100">
-        <Link href={`/track?awb=${trackingNo}`} className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#FF7A00] transition-colors">
+        <Link href={`/track?awb=${trackingNo}`} className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#FF7A00] transition-colors cursor-pointer">
           <MapPin className="w-4 h-4" /> Track Shipment
         </Link>
         <button 
           onClick={() => window.open(`https://wa.me/?text=Track my PickMyOrder shipment: ${window.location.origin}/track?awb=${trackingNo}`, '_blank')}
-          className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#25D366] transition-colors"
+          className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#25D366] transition-colors cursor-pointer"
         >
           <MessageCircle className="w-4 h-4" /> Send on WhatsApp
         </button>
@@ -82,7 +95,7 @@ export default function BookingSuccess({ quote }: { quote: any }) {
             navigator.clipboard.writeText(`${window.location.origin}/track?awb=${trackingNo}`);
             alert('Tracking link copied to clipboard!');
           }}
-          className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#111827] transition-colors"
+          className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#111827] transition-colors cursor-pointer"
         >
           <Share2 className="w-4 h-4" /> Share Tracking Link
         </button>

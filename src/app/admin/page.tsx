@@ -66,6 +66,7 @@ export default function AdminPanel() {
   const [uploading, setUploading] = useState(false);
 
   // Selected entities for editing
+  const [editingCourier, setEditingCourier] = useState<any | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [orderUpdate, setOrderUpdate] = useState({
     status: "",
@@ -180,6 +181,34 @@ export default function AdminPanel() {
       }
     } catch (err) {
       setError("An error occurred while creating courier.");
+    }
+  };
+
+  const handleCourierEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingCourier) return;
+    try {
+      const res = await fetch("/api/admin/couriers", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          id: editingCourier.id,
+          name: editingCourier.name,
+          code: editingCourier.code,
+          priority: editingCourier.priority,
+          trackingUrl: editingCourier.trackingUrl,
+        }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Courier updated successfully.");
+        setEditingCourier(null);
+        fetchTabItems();
+      } else {
+        setError(data.error || "Failed to update courier.");
+      }
+    } catch (err) {
+      setError("An error occurred while updating courier.");
     }
   };
 
@@ -554,50 +583,69 @@ export default function AdminPanel() {
             </div>
 
             {selectedOrder ? (
-              <form onSubmit={handleOrderUpdateSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
-                <h3 className="font-bold text-gray-900 text-sm">Update Tracking: {selectedOrder.orderNumber}</h3>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Select Status</label>
-                  <select
-                    value={orderUpdate.status}
-                    onChange={(e) => setOrderUpdate({ ...orderUpdate, status: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none text-gray-900"
-                  >
-                    <option value="PICKUP_SCHEDULED">Pickup Scheduled</option>
-                    <option value="PICKED_UP">Picked Up</option>
-                    <option value="IN_TRANSIT">In Transit</option>
-                    <option value="OUT_FOR_DELIVERY">Out For Delivery</option>
-                    <option value="DELIVERED">Delivered</option>
-                    <option value="CANCELLED">Cancelled</option>
-                  </select>
+              <div className="flex flex-col gap-4">
+                <form onSubmit={handleOrderUpdateSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
+                  <h3 className="font-bold text-gray-900 text-sm">Update Tracking: {selectedOrder.orderNumber}</h3>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Select Status</label>
+                    <select
+                      value={orderUpdate.status}
+                      onChange={(e) => setOrderUpdate({ ...orderUpdate, status: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none text-gray-900"
+                    >
+                      <option value="PICKUP_SCHEDULED">Pickup Scheduled</option>
+                      <option value="PICKED_UP">Picked Up</option>
+                      <option value="IN_TRANSIT">In Transit</option>
+                      <option value="OUT_FOR_DELIVERY">Out For Delivery</option>
+                      <option value="DELIVERED">Delivered</option>
+                      <option value="CANCELLED">Cancelled</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Hub Location</label>
+                    <input
+                      type="text"
+                      placeholder="E.g. Wilson Garden Hub, Bengaluru"
+                      value={orderUpdate.location}
+                      onChange={(e) => setOrderUpdate({ ...orderUpdate, location: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none text-gray-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Timeline Description</label>
+                    <input
+                      type="text"
+                      placeholder="Brief updates on parcel location..."
+                      value={orderUpdate.description}
+                      onChange={(e) => setOrderUpdate({ ...orderUpdate, description: e.target.value })}
+                      className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none text-gray-900"
+                    />
+                  </div>
+                  <div className="flex gap-2 justify-end pt-2">
+                    <button type="button" onClick={() => setSelectedOrder(null)} className="text-xs text-gray-500 hover:underline">Cancel</button>
+                    <button type="submit" className="bg-[#FF7A00] text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1 cursor-pointer">
+                      <Save className="w-3.5 h-3.5" /> Save Changes
+                    </button>
+                  </div>
+                </form>
+                <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
+                  <h3 className="font-bold text-gray-900 text-sm">Order Details: {selectedOrder.orderNumber}</h3>
+                  <div className="grid grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <span className="block text-gray-500 font-semibold mb-1">Package Info</span>
+                      <p className="font-medium">{selectedOrder.quote?.packageType || "N/A"}</p>
+                      <p className="text-gray-500">Weight: {selectedOrder.quote?.weight || "N/A"} kg</p>
+                      <p className="text-gray-500">Dims: {selectedOrder.quote?.length || "N/A"}x{selectedOrder.quote?.width || "N/A"}x{selectedOrder.quote?.height || "N/A"} cm</p>
+                    </div>
+                    <div>
+                      <span className="block text-gray-500 font-semibold mb-1">Shipping</span>
+                      <p className="font-medium">{selectedOrder.quote?.transport || "N/A"}</p>
+                      <p className="text-gray-500">Packing: {selectedOrder.quote?.packing ? "Yes" : "No"}</p>
+                      <p className="text-gray-500">Amount: ₹{selectedOrder.totalAmount}</p>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Hub Location</label>
-                  <input
-                    type="text"
-                    placeholder="E.g. Wilson Garden Hub, Bengaluru"
-                    value={orderUpdate.location}
-                    onChange={(e) => setOrderUpdate({ ...orderUpdate, location: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none text-gray-900"
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-gray-500 mb-1">Timeline Description</label>
-                  <input
-                    type="text"
-                    placeholder="Brief updates on parcel location..."
-                    value={orderUpdate.description}
-                    onChange={(e) => setOrderUpdate({ ...orderUpdate, description: e.target.value })}
-                    className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none text-gray-900"
-                  />
-                </div>
-                <div className="flex gap-2 justify-end pt-2">
-                  <button type="button" onClick={() => setSelectedOrder(null)} className="text-xs text-gray-500 hover:underline">Cancel</button>
-                  <button type="submit" className="bg-[#FF7A00] text-white text-xs font-bold px-4 py-2 rounded-lg flex items-center gap-1 cursor-pointer">
-                    <Save className="w-3.5 h-3.5" /> Save Changes
-                  </button>
-                </div>
-              </form>
+              </div>
             ) : null}
 
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm overflow-x-auto">
@@ -688,6 +736,26 @@ export default function AdminPanel() {
               </form>
             )}
 
+            {editingCourier && (
+              <form onSubmit={handleCourierEditSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
+                <h3 className="font-bold text-gray-900 text-sm">Edit Courier</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Name</label>
+                    <input type="text" value={editingCourier.name} onChange={(e) => setEditingCourier({...editingCourier, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BlueDart" required />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Code</label>
+                    <input type="text" value={editingCourier.code} onChange={(e) => setEditingCourier({...editingCourier, code: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BLUEDART" required />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <button type="button" onClick={() => setEditingCourier(null)} className="text-xs text-gray-500 hover:underline cursor-pointer">Cancel</button>
+                  <button type="submit" className="bg-[#FF7A00] text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Update</button>
+                </div>
+              </form>
+            )}
+
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
@@ -724,7 +792,10 @@ export default function AdminPanel() {
                         </button>
                       </td>
                       <td className="py-4 text-xs text-gray-400">Mock Mode (Plug-in ready)</td>
-                      <td className="py-4">
+                      <td className="py-4 flex gap-2">
+                        <button onClick={() => setEditingCourier(c)} className="text-blue-500 hover:text-blue-700 cursor-pointer p-1 rounded-lg hover:bg-blue-50 text-xs font-bold">
+                          Edit
+                        </button>
                         <button onClick={() => handleCourierDelete(c.id)} className="text-red-400 hover:text-red-600 cursor-pointer p-1 rounded-lg hover:bg-red-50">
                           <Trash2 className="w-4 h-4" />
                         </button>

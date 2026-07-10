@@ -7,6 +7,9 @@ const courierSchema = z.object({
   id: z.string().min(1, "Courier Partner ID is required"),
   isActive: z.boolean().optional(),
   priority: z.coerce.number().int().min(1).optional(),
+  name: z.string().min(2).optional(),
+  code: z.string().min(2).optional(),
+  trackingUrl: z.string().optional(),
   apiKey: z.string().optional(),
   apiSecret: z.string().optional(),
 });
@@ -41,7 +44,7 @@ export async function PUT(request: Request) {
     if (!parsed.success) {
       return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
-    const { id, isActive, priority, apiKey, apiSecret } = parsed.data;
+    const { id, isActive, priority, apiKey, apiSecret, name, code, trackingUrl } = parsed.data;
 
     const updated = await prisma.courierPartner.update({
       where: { id },
@@ -50,6 +53,9 @@ export async function PUT(request: Request) {
         priority: priority !== undefined ? priority : undefined,
         apiKey: apiKey !== undefined ? apiKey : undefined,
         apiSecret: apiSecret !== undefined ? apiSecret : undefined,
+        name: name !== undefined ? name : undefined,
+        code: code !== undefined ? code : undefined,
+        trackingUrl: trackingUrl !== undefined ? trackingUrl : undefined,
       },
     });
 
