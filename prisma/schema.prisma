@@ -1,0 +1,289 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id             String          @id @default(uuid())
+  name           String?
+  email          String?         @unique
+  passwordHash   String?
+  phone          String?
+  role           String          @default("CUSTOMER") // SQLite doesn't support enums directly, using String
+  emailVerified  DateTime?
+  image          String?
+  accounts       Account[]
+  sessions       Session[]
+  orders         Order[]
+  quotes         Quote[]
+  supportTickets SupportTicket[]
+  notifications  Notification[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Account {
+  id                String  @id @default(uuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  id         String   @id @default(uuid())
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+model CourierPartner {
+  id           String        @id @default(uuid())
+  name         String
+  code         String        @unique // e.g. BLUEDART, DELHIVERY, DTDC, XPRESSBEES, ECOMEXPRESS, INDIAPOST
+  logo         String?
+  isActive     Boolean       @default(true)
+  priority     Int           @default(1)
+  apiKey       String?
+  apiSecret    String?
+  trackingUrl  String?
+  pricingRules PricingRule[]
+  weightSlabs  WeightSlab[]
+  orders       Order[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model ServiceType {
+  id           String        @id @default(uuid())
+  name         String        // Document, Parcel, Fragile, Heavy, Liquid, Electronics, Medicine, Food
+  code         String        @unique // document, parcel, fragile, heavy, liquid, electronics, medicine, food
+  description  String?
+  isActive     Boolean       @default(true)
+  pricingRules PricingRule[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model Zone {
+  id           String        @id @default(uuid())
+  name         String        @unique // Zone A, Zone B, Zone C, Zone D
+  description  String?
+  pricingRules PricingRule[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+model PincodeZone {
+  id                  String   @id @default(uuid())
+  pincode             String   @unique
+  zoneName            String   // E.g. "Zone A" (matches Zone.name)
+  isServiceable       Boolean  @default(true)
+  isRemoteArea        Boolean  @default(false)
+  estimatedDeliveryDays Int    @default(3)
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+}
+
+model PricingRule {
+  id                   String   @id @default(uuid())
+  courierPartnerId     String
+  zoneId               String
+  serviceTypeId        String
+  transport            String   @default("DOMESTIC") // DOMESTIC, INTERNATIONAL
+  basePrice            Float
+  pricePerKg           Float
+  additionalKgPrice    Float
+  minCharge            Float    @default(0.0)
+  maxWeight            Float    @default(100.0)
+  fuelSurchargePercent Float    @default(0.0)
+  handlingCharge       Float    @default(0.0)
+  codCharge            Float    @default(0.0)
+  remoteAreaCharge     Float    @default(0.0)
+  insurancePercent     Float    @default(0.0)
+  isActive             Boolean  @default(true)
+
+  courierPartner CourierPartner @relation(fields: [courierPartnerId], references: [id], onDelete: Cascade)
+  zone           Zone           @relation(fields: [zoneId], references: [id], onDelete: Cascade)
+  serviceType    ServiceType    @relation(fields: [serviceTypeId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model WeightSlab {
+  id               String   @id @default(uuid())
+  courierPartnerId String
+  minWeight        Float
+  maxWeight        Float
+  price            Float
+  transport        String   @default("DOMESTIC")
+  isActive         Boolean  @default(true)
+
+  courierPartner CourierPartner @relation(fields: [courierPartnerId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model PackagingOption {
+  id          String   @id @default(uuid())
+  name        String   // Envelope, Box, Premium, Fragile, Bubble Wrap, Wooden Box
+  code        String   @unique
+  price       Float
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TaxConfig {
+  id        String   @id @default(uuid())
+  name      String   @unique // GST, CGST, SGST, IGST, TCS
+  rate      Float    // e.g. 18.0
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Quote {
+  id             String   @id @default(uuid())
+  pickupPincode  String
+  destPincode    String
+  packageType    String
+  transport      String
+  weight         Float
+  length         Float
+  width          Float
+  height         Float
+  packing        Boolean
+  pricingDetails String   // Stringified JSON of courier options and details
+  userId         String?
+  user           User?    @relation(fields: [userId], references: [id])
+  orders         Order[]
+  createdAt      DateTime @default(now())
+}
+
+model Order {
+  id               String   @id @default(uuid())
+  orderNumber      String   @unique
+  quoteId          String
+  userId           String
+  courierPartnerId String
+  awbNumber        String?  @unique
+  status           String   @default("PICKUP_SCHEDULED") // PICKUP_SCHEDULED, etc.
+  pickupName       String
+  pickupPhone      String
+  pickupAddress    String
+  pickupCity       String
+  pickupState      String
+  pickupPin        String
+  destName         String
+  destPhone        String
+  destAddress      String
+  destCity         String
+  destState        String
+  destPin          String
+  totalAmount      Float
+  paymentId        String?
+  paymentStatus    String   @default("PENDING") // PENDING, PAID, FAILED
+  invoiceNumber    String?  @unique
+
+  quote          Quote          @relation(fields: [quoteId], references: [id])
+  user           User           @relation(fields: [userId], references: [id])
+  courierPartner CourierPartner @relation(fields: [courierPartnerId], references: [id])
+  trackingEvents TrackingEvent[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model TrackingEvent {
+  id          String   @id @default(uuid())
+  orderId     String
+  status      String
+  location    String
+  description String
+  timestamp   DateTime @default(now())
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+}
+
+model SiteSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  userId    String
+  title     String
+  message   String
+  type      String   @default("info")
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model SupportTicket {
+  id        String   @id @default(uuid())
+  userId    String
+  subject   String
+  message   String
+  status    String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id        String   @id @default(uuid())
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  details   String?
+  ipAddress String?
+  createdAt DateTime @default(now())
+}
+
+model Media {
+  id        String   @id @default(uuid())
+  url       String
+  type      String   // IMAGE, VIDEO_REEL, BANNER
+  section   String   // e.g., HERO, TRUST_BAND, REEL, SERVICES
+  title     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
