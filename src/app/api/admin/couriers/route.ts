@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { z } from "zod";
+
+const courierSchema = z.object({
+  id: z.string().min(1, "Courier Partner ID is required"),
+  isActive: z.boolean().optional(),
+  priority: z.coerce.number().int().min(1).optional(),
+  apiKey: z.string().optional(),
+  apiSecret: z.string().optional(),
+});
 
 export async function GET(request: Request) {
   try {
@@ -27,16 +36,18 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, isActive, priority, apiKey, apiSecret } = await request.json();
-    if (!id) {
-      return NextResponse.json({ success: false, error: "Courier Partner ID is required" }, { status: 400 });
+    const body = await request.json();
+    const parsed = courierSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const { id, isActive, priority, apiKey, apiSecret } = parsed.data;
 
     const updated = await prisma.courierPartner.update({
       where: { id },
       data: {
         isActive: isActive !== undefined ? isActive : undefined,
-        priority: priority !== undefined ? parseInt(priority) : undefined,
+        priority: priority !== undefined ? priority : undefined,
         apiKey: apiKey !== undefined ? apiKey : undefined,
         apiSecret: apiSecret !== undefined ? apiSecret : undefined,
       },

@@ -1,6 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { z } from "zod";
+
+const pincodeSchema = z.object({
+  id: z.string().min(1, "ID is required"),
+  isServiceable: z.union([z.boolean(), z.string().transform(v => v === 'true')]).optional(),
+  isRemoteArea: z.union([z.boolean(), z.string().transform(v => v === 'true')]).optional(),
+  estimatedDeliveryDays: z.coerce.number().min(1).optional()
+});
 
 export async function GET(request: Request) {
   try {
@@ -45,17 +53,19 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, isServiceable, isRemoteArea, estimatedDeliveryDays } = await request.json();
-    if (!id) {
-      return NextResponse.json({ success: false, error: "ID is required" }, { status: 400 });
+    const body = await request.json();
+    const parsed = pincodeSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const { id, isServiceable, isRemoteArea, estimatedDeliveryDays } = parsed.data;
 
     const updated = await prisma.pincodeZone.update({
       where: { id },
       data: {
         isServiceable: isServiceable !== undefined ? !!isServiceable : undefined,
         isRemoteArea: isRemoteArea !== undefined ? !!isRemoteArea : undefined,
-        estimatedDeliveryDays: estimatedDeliveryDays !== undefined ? parseInt(estimatedDeliveryDays) : undefined,
+        estimatedDeliveryDays: estimatedDeliveryDays !== undefined ? estimatedDeliveryDays : undefined,
       },
     });
 

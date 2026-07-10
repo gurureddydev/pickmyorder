@@ -4,6 +4,13 @@ import { prisma } from "@/lib/prisma";
 import { writeFile, unlink, mkdir } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
+import { z } from "zod";
+
+const mediaSchema = z.object({
+  type: z.enum(["IMAGE", "VIDEO_REEL", "BANNER"]),
+  section: z.string().min(2, "Section is required"),
+  title: z.string().optional(),
+});
 
 export async function GET() {
   const session = await auth();
@@ -28,13 +35,22 @@ export async function POST(req: Request) {
   try {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const type = formData.get("type") as string;
-    const section = formData.get("section") as string;
-    const title = formData.get("title") as string;
-
-    if (!file || !type || !section) {
-      return NextResponse.json({ success: false, error: "Missing required fields" }, { status: 400 });
+    if (!file) {
+      return NextResponse.json({ success: false, error: "File is required" }, { status: 400 });
     }
+
+    const type = formData.get("type");
+    const section = formData.get("section");
+    const title = formData.get("title");
+
+    const parsed = mediaSchema.safeParse({ type, section, title: title || undefined });
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
+    }
+
+    const typedType = parsed.data.type;
+    const typedSection = parsed.data.section;
+    const typedTitle = parsed.data.title || "";
 
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
@@ -53,9 +69,9 @@ export async function POST(req: Request) {
     const newMedia = await prisma.media.create({
       data: {
         url: fileUrl,
-        type,
-        section,
-        title,
+        type: typedType,
+        section: typedSection,
+        title: typedTitle,
       }
     });
 

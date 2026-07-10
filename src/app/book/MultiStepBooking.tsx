@@ -257,10 +257,10 @@ export default function MultiStepBooking() {
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5 mb-8">
-                <Input label="Full Name *" value={sender.name} onChange={(e) => setSender({...sender, name: e})} placeholder="e.g. John Doe" />
-                <Input label="Mobile Number *" value={sender.phone} onChange={(e) => setSender({...sender, phone: e})} placeholder="10-digit number" />
+                <Input label="Full Name *" value={sender.name} onChange={(e: any) => setSender({...sender, name: e})} placeholder="e.g. John Doe" />
+                <Input label="Mobile Number *" value={sender.phone} onChange={(e: any) => setSender({...sender, phone: e})} placeholder="10-digit number" />
                 <div className="sm:col-span-2">
-                  <Input label="Complete Address *" value={sender.address} onChange={(e) => setSender({...sender, address: e})} placeholder="House/Flat No, Building, Street" />
+                  <Input label="Complete Address *" value={sender.address} onChange={(e: any) => setSender({...sender, address: e})} placeholder="House/Flat No, Building, Street" />
                 </div>
               </div>
 
@@ -278,10 +278,10 @@ export default function MultiStepBooking() {
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5">
-                <Input label="Receiver Name *" value={receiver.name} onChange={(e) => setReceiver({...receiver, name: e})} placeholder="e.g. Jane Smith" />
-                <Input label="Mobile Number *" value={receiver.phone} onChange={(e) => setReceiver({...receiver, phone: e})} placeholder="10-digit number" />
+                <Input label="Receiver Name *" value={receiver.name} onChange={(e: any) => setReceiver({...receiver, name: e})} placeholder="e.g. Jane Smith" />
+                <Input label="Mobile Number *" value={receiver.phone} onChange={(e: any) => setReceiver({...receiver, phone: e})} placeholder="10-digit number" />
                 <div className="sm:col-span-2">
-                  <Input label="Complete Address *" value={receiver.address} onChange={(e) => setReceiver({...receiver, address: e})} placeholder="House/Flat No, Building, Street" />
+                  <Input label="Complete Address *" value={receiver.address} onChange={(e: any) => setReceiver({...receiver, address: e})} placeholder="House/Flat No, Building, Street" />
                 </div>
               </div>
             </motion.div>
@@ -311,10 +311,10 @@ export default function MultiStepBooking() {
 
               <div className="grid sm:grid-cols-2 gap-5 mb-8">
                 <div className="sm:col-span-2">
-                  <Input label="Package Description" value={pkg.description} onChange={(e) => setPkg({...pkg, description: e})} placeholder="e.g. Books, Clothes, Documents..." />
+                  <Input label="Package Description" value={pkg.description} onChange={(e: any) => setPkg({...pkg, description: e})} placeholder="e.g. Books, Clothes, Documents..." />
                 </div>
-                <Input label="Number of Packages" value={pkg.count} onChange={(e) => setPkg({...pkg, count: e})} placeholder="1" type="number" />
-                <Input label="Declared Value (₹)" value={pkg.declaredValue} onChange={(e) => setPkg({...pkg, declaredValue: e})} placeholder="5000" type="number" />
+                <Input label="Number of Packages" value={pkg.count} onChange={(e: any) => setPkg({...pkg, count: e})} placeholder="1" type="number" />
+                <Input label="Declared Value (₹)" value={pkg.declaredValue} onChange={(e: any) => setPkg({...pkg, declaredValue: e})} placeholder="5000" type="number" />
               </div>
 
               <div className="space-y-4 border-t border-gray-100 pt-6">
@@ -326,7 +326,7 @@ export default function MultiStepBooking() {
                     <span className="block text-sm font-bold text-gray-900">Add Professional Packing (+₹50)</span>
                     <span className="block text-xs text-gray-500 mt-0.5">Our executive will bring quality packing materials to safely pack your items during pickup.</span>
                   </div>
-                  <input type="checkbox" checked={pkg.packing} onChange={(e) => setPkg({...pkg, packing: e.target.checked})} className="hidden" />
+                  <input type="checkbox" checked={pkg.packing} onChange={(e: any) => setPkg({...pkg, packing: e.target.checked})} className="hidden" />
                 </label>
                 
                 <label className="flex items-start gap-3 cursor-pointer group">
@@ -337,7 +337,7 @@ export default function MultiStepBooking() {
                     <span className="block text-sm font-bold text-gray-900">Shipment Insurance (+₹150)</span>
                     <span className="block text-xs text-gray-500 mt-0.5">Protect your shipment against loss or damage up to the declared value.</span>
                   </div>
-                  <input type="checkbox" checked={pkg.insurance} onChange={(e) => setPkg({...pkg, insurance: e.target.checked})} className="hidden" />
+                  <input type="checkbox" checked={pkg.insurance} onChange={(e: any) => setPkg({...pkg, insurance: e.target.checked})} className="hidden" />
                 </label>
               </div>
             </motion.div>
@@ -365,16 +365,16 @@ export default function MultiStepBooking() {
                       <div className={`w-4 h-4 rounded-full bg-white transition-transform ${services.whatsapp ? 'translate-x-6' : 'translate-x-0'}`}></div>
                     </div>
                     <span className="font-semibold text-sm">Receive booking updates on WhatsApp</span>
-                    <input type="checkbox" checked={services.whatsapp} onChange={(e) => setServices({...services, whatsapp: e.target.checked})} className="hidden" />
+                    <input type="checkbox" checked={services.whatsapp} onChange={(e: any) => setServices({...services, whatsapp: e.target.checked})} className="hidden" />
                   </label>
                 </div>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
-                <ToggleCard title="Express Delivery" desc="Prioritize shipment processing" checked={services.express} onChange={(c) => setServices({...services, express: c})} />
-                <ToggleCard title="Same Day Pickup" desc="Schedule pickup today (if before 2PM)" checked={services.sameDay} onChange={(c) => setServices({...services, sameDay: c})} />
-                <ToggleCard title="SMS Notifications" desc="Standard text message updates" checked={services.sms} onChange={(c) => setServices({...services, sms: c})} />
-                <ToggleCard title="Signature Required" desc="Ensure hand-to-hand delivery" checked={services.signature} onChange={(c) => setServices({...services, signature: c})} />
+                <ToggleCard title="Express Delivery" desc="Prioritize shipment processing" checked={services.express} onChange={(c: any) => setServices({...services, express: c})} />
+                <ToggleCard title="Same Day Pickup" desc="Schedule pickup today (if before 2PM)" checked={services.sameDay} onChange={(c: any) => setServices({...services, sameDay: c})} />
+                <ToggleCard title="SMS Notifications" desc="Standard text message updates" checked={services.sms} onChange={(c: any) => setServices({...services, sms: c})} />
+                <ToggleCard title="Signature Required" desc="Ensure hand-to-hand delivery" checked={services.signature} onChange={(c: any) => setServices({...services, signature: c})} />
               </div>
             </motion.div>
           )}
@@ -461,7 +461,7 @@ function Input({ label, value, onChange, placeholder, type = "text", maxLength }
       <input
         type={type}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(e: any) => onChange(e.target.value)}
         placeholder={placeholder}
         maxLength={maxLength}
         className="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all text-gray-900 bg-gray-50/50 hover:bg-white"

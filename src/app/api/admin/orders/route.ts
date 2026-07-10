@@ -1,6 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { z } from "zod";
+
+const orderUpdateSchema = z.object({
+  id: z.string().min(1, "Order ID is required"),
+  status: z.enum(["PICKUP_SCHEDULED", "IN_TRANSIT", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED", "RETURNED"]).optional(),
+  awbNumber: z.string().optional(),
+  location: z.string().optional(),
+  description: z.string().optional(),
+});
 
 export async function GET(request: Request) {
   try {
@@ -35,10 +44,12 @@ export async function PUT(request: Request) {
       return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
     }
 
-    const { id, status, awbNumber, location, description } = await request.json();
-    if (!id) {
-      return NextResponse.json({ success: false, error: "Order ID is required" }, { status: 400 });
+    const body = await request.json();
+    const parsed = orderUpdateSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const { id, status, awbNumber, location, description } = parsed.data;
 
     const updated = await prisma.order.update({
       where: { id },

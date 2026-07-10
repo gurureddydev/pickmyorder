@@ -1,6 +1,6 @@
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "mongodb"
+  url      = env("MONGODB_URI")
 }
 
 generator client {
@@ -8,7 +8,7 @@ generator client {
 }
 
 model User {
-  id             String          @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   name           String?
   email          String?         @unique
   passwordHash   String?
@@ -27,8 +27,8 @@ model User {
 }
 
 model Account {
-  id                String  @id @default(uuid())
-  userId            String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId            String @db.ObjectId
   type              String
   provider          String
   providerAccountId String
@@ -46,15 +46,15 @@ model Account {
 }
 
 model Session {
-  id           String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   sessionToken String   @unique
-  userId       String
+  userId       String @db.ObjectId
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
-  id         String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   identifier String
   token      String   @unique
   expires    DateTime
@@ -63,7 +63,7 @@ model VerificationToken {
 }
 
 model CourierPartner {
-  id           String        @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   name         String
   code         String        @unique // e.g. BLUEDART, DELHIVERY, DTDC, XPRESSBEES, ECOMEXPRESS, INDIAPOST
   logo         String?
@@ -80,7 +80,7 @@ model CourierPartner {
 }
 
 model ServiceType {
-  id           String        @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   name         String        // Document, Parcel, Fragile, Heavy, Liquid, Electronics, Medicine, Food
   code         String        @unique // document, parcel, fragile, heavy, liquid, electronics, medicine, food
   description  String?
@@ -91,7 +91,7 @@ model ServiceType {
 }
 
 model Zone {
-  id           String        @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   name         String        @unique // Zone A, Zone B, Zone C, Zone D
   description  String?
   pricingRules PricingRule[]
@@ -100,7 +100,7 @@ model Zone {
 }
 
 model PincodeZone {
-  id                  String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   pincode             String   @unique
   zoneName            String   // E.g. "Zone A" (matches Zone.name)
   isServiceable       Boolean  @default(true)
@@ -111,10 +111,10 @@ model PincodeZone {
 }
 
 model PricingRule {
-  id                   String   @id @default(uuid())
-  courierPartnerId     String
-  zoneId               String
-  serviceTypeId        String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  courierPartnerId     String @db.ObjectId
+  zoneId               String @db.ObjectId
+  serviceTypeId        String @db.ObjectId
   transport            String   @default("DOMESTIC") // DOMESTIC, INTERNATIONAL
   basePrice            Float
   pricePerKg           Float
@@ -137,8 +137,8 @@ model PricingRule {
 }
 
 model WeightSlab {
-  id               String   @id @default(uuid())
-  courierPartnerId String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  courierPartnerId String @db.ObjectId
   minWeight        Float
   maxWeight        Float
   price            Float
@@ -152,7 +152,7 @@ model WeightSlab {
 }
 
 model PackagingOption {
-  id          String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   name        String   // Envelope, Box, Premium, Fragile, Bubble Wrap, Wooden Box
   code        String   @unique
   price       Float
@@ -163,7 +163,7 @@ model PackagingOption {
 }
 
 model TaxConfig {
-  id        String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   name      String   @unique // GST, CGST, SGST, IGST, TCS
   rate      Float    // e.g. 18.0
   isActive  Boolean  @default(true)
@@ -172,7 +172,7 @@ model TaxConfig {
 }
 
 model Quote {
-  id             String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   pickupPincode  String
   destPincode    String
   packageType    String
@@ -183,18 +183,18 @@ model Quote {
   height         Float
   packing        Boolean
   pricingDetails String   // Stringified JSON of courier options and details
-  userId         String?
+  userId         String? @db.ObjectId
   user           User?    @relation(fields: [userId], references: [id])
   orders         Order[]
   createdAt      DateTime @default(now())
 }
 
 model Order {
-  id               String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   orderNumber      String   @unique
-  quoteId          String
-  userId           String
-  courierPartnerId String
+  quoteId          String @db.ObjectId
+  userId           String @db.ObjectId
+  courierPartnerId String @db.ObjectId
   awbNumber        String?  @unique
   status           String   @default("PICKUP_SCHEDULED") // PICKUP_SCHEDULED, etc.
   pickupName       String
@@ -224,8 +224,8 @@ model Order {
 }
 
 model TrackingEvent {
-  id          String   @id @default(uuid())
-  orderId     String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  orderId     String @db.ObjectId
   status      String
   location    String
   description String
@@ -235,7 +235,7 @@ model TrackingEvent {
 }
 
 model SiteSetting {
-  id        String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   key       String   @unique
   value     String
   createdAt DateTime @default(now())
@@ -243,8 +243,8 @@ model SiteSetting {
 }
 
 model Notification {
-  id        String   @id @default(uuid())
-  userId    String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String @db.ObjectId
   title     String
   message   String
   type      String   @default("info")
@@ -255,8 +255,8 @@ model Notification {
 }
 
 model SupportTicket {
-  id        String   @id @default(uuid())
-  userId    String
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String @db.ObjectId
   subject   String
   message   String
   status    String   @default("OPEN") // OPEN, IN_PROGRESS, RESOLVED
@@ -267,8 +267,8 @@ model SupportTicket {
 }
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
+  id String @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String? @db.ObjectId
   action    String
   entity    String
   entityId  String?
@@ -278,7 +278,7 @@ model AuditLog {
 }
 
 model Media {
-  id        String   @id @default(uuid())
+  id String @id @default(auto()) @map("_id") @db.ObjectId
   url       String
   type      String   // IMAGE, VIDEO_REEL, BANNER
   section   String   // e.g., HERO, TRUST_BAND, REEL, SERVICES

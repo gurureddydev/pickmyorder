@@ -1,18 +1,28 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const contactSchema = z.object({
+  name: z.string().min(2, "Name must be at least 2 characters"),
+  email: z.string().email("Invalid email address"),
+  subject: z.string().optional(),
+  message: z.string().min(10, "Message must be at least 10 characters").max(1000, "Message too long"),
+});
 
 // Public API: Anyone can submit a contact/support message
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { name, email, subject, message } = body;
+    const parsed = contactSchema.safeParse(body);
 
-    if (!name || !email || !message) {
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Name, email, and message are required" },
+        { success: false, error: parsed.error.errors[0].message },
         { status: 400 }
       );
     }
+    
+    const { name, email, subject, message } = parsed.data;
 
     // Find or create a dummy public user record for this contact
     // We store in SupportTicket with the subject containing name+email since SupportTicket is user-linked

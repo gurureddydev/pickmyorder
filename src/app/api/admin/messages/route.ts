@@ -1,6 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { z } from "zod";
+
+const messageUpdateSchema = z.object({
+  id: z.string().min(1, "ID is required"),
+  status: z.enum(["OPEN", "IN_PROGRESS", "RESOLVED"])
+});
 
 // GET: Admin fetches all contact messages (support tickets)
 export async function GET(request: Request) {
@@ -31,11 +37,12 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, status } = body;
+    const parsed = messageUpdateSchema.safeParse(body);
 
-    if (!id || !status) {
-      return NextResponse.json({ success: false, error: "ID and status required" }, { status: 400 });
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const { id, status } = parsed.data;
 
     const updated = await prisma.supportTicket.update({
       where: { id },

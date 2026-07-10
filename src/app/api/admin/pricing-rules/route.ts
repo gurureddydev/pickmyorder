@@ -1,6 +1,16 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { z } from "zod";
+
+const pricingRuleSchema = z.object({
+  id: z.string().min(1, "Pricing Rule ID is required"),
+  basePrice: z.union([z.number(), z.string()]).optional().transform(v => v !== undefined ? Number(v) : undefined),
+  pricePerKg: z.union([z.number(), z.string()]).optional().transform(v => v !== undefined ? Number(v) : undefined),
+  additionalKgPrice: z.union([z.number(), z.string()]).optional().transform(v => v !== undefined ? Number(v) : undefined),
+  fuelSurchargePercent: z.union([z.number(), z.string()]).optional().transform(v => v !== undefined ? Number(v) : undefined),
+  isActive: z.boolean().optional(),
+});
 
 export async function GET(request: Request) {
   try {
@@ -33,19 +43,19 @@ export async function PUT(request: Request) {
     }
 
     const body = await request.json();
-    const { id, basePrice, pricePerKg, additionalKgPrice, fuelSurchargePercent, isActive } = body;
-
-    if (!id) {
-      return NextResponse.json({ success: false, error: "Pricing Rule ID is required" }, { status: 400 });
+    const parsed = pricingRuleSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
+    const { id, basePrice, pricePerKg, additionalKgPrice, fuelSurchargePercent, isActive } = parsed.data;
 
     const updated = await prisma.pricingRule.update({
       where: { id },
       data: {
-        basePrice: basePrice !== undefined ? parseFloat(basePrice) : undefined,
-        pricePerKg: pricePerKg !== undefined ? parseFloat(pricePerKg) : undefined,
-        additionalKgPrice: additionalKgPrice !== undefined ? parseFloat(additionalKgPrice) : undefined,
-        fuelSurchargePercent: fuelSurchargePercent !== undefined ? parseFloat(fuelSurchargePercent) : undefined,
+        basePrice: basePrice !== undefined ? basePrice : undefined,
+        pricePerKg: pricePerKg !== undefined ? pricePerKg : undefined,
+        additionalKgPrice: additionalKgPrice !== undefined ? additionalKgPrice : undefined,
+        fuelSurchargePercent: fuelSurchargePercent !== undefined ? fuelSurchargePercent : undefined,
         isActive: isActive !== undefined ? isActive : undefined,
       },
     });

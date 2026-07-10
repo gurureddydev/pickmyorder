@@ -1,6 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { auth } from "@/auth";
+import { z } from "zod";
+
+const orderSchema = z.object({
+  pickupName: z.string().min(2, "Pickup name required"),
+  pickupPhone: z.string().min(10, "Valid phone required"),
+  pickupAddress: z.string().min(5, "Pickup address required"),
+  pickupCity: z.string().min(2, "Pickup city required"),
+  pickupState: z.string().min(2, "Pickup state required"),
+  pickupPin: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
+  destName: z.string().min(2, "Destination name required"),
+  destPhone: z.string().min(10, "Valid phone required"),
+  destAddress: z.string().min(5, "Destination address required"),
+  destCity: z.string().min(2, "Destination city required"),
+  destState: z.string().min(2, "Destination state required"),
+  destPin: z.string().regex(/^\d{6}$/, "Pincode must be 6 digits"),
+  totalAmount: z.coerce.number().min(0, "Invalid amount"),
+  courierPartnerId: z.string().min(1, "Courier partner required"),
+});
 
 export async function GET(request: Request) {
   try {
@@ -30,6 +48,12 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
+    const parsed = orderSchema.safeParse(body);
+
+    if (!parsed.success) {
+      return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
+    }
+
     const {
       pickupName,
       pickupPhone,
@@ -45,11 +69,7 @@ export async function POST(request: Request) {
       destPin,
       totalAmount,
       courierPartnerId,
-    } = body;
-
-    if (!pickupName || !pickupAddress || !destName || !destAddress || !courierPartnerId || !totalAmount) {
-      return NextResponse.json({ success: false, error: "Missing required booking details" }, { status: 400 });
-    }
+    } = parsed.data;
 
     // 1. Create a dummy Quote record for DB integrity
     const quote = await prisma.quote.create({
@@ -93,7 +113,7 @@ export async function POST(request: Request) {
         destCity,
         destState,
         destPin,
-        totalAmount: parseFloat(totalAmount),
+        totalAmount,
         paymentStatus: "PAID", // Default to paid for simplify test checkout
         invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
       },

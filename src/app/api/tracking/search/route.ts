@@ -1,16 +1,22 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { z } from "zod";
+
+const trackingSchema = z.object({
+  query: z.string().min(5, "Search query must be at least 5 characters").max(40, "Search query too long").regex(/^[A-Za-z0-9-]+$/, "Invalid characters in tracking query")
+});
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { query } = body;
-    if (!query || !query.trim()) {
+    const parsed = trackingSchema.safeParse(body);
+    if (!parsed.success) {
       return NextResponse.json(
-        { success: false, error: "Search query is required" },
+        { success: false, error: parsed.error.errors[0].message },
         { status: 400 }
       );
     }
+    const { query } = parsed.data;
     const searchQuery = query.trim().toUpperCase();
     const searchQueryRaw = query.trim();
 
