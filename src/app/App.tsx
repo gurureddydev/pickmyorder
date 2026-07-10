@@ -24,14 +24,14 @@ export function useMedia() {
 // ─── Images ──────────────────────────────────────────────────────────────────
 // Realistic logistics & delivery images from Unsplash (freely licensed)
 const IMAGES = {
-  heroDelivery: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_hero_1783662982136.png",
-  warehouse: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_warehouse_1783663018647.png",
-  deliveryVan: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_van_1783663038707.png",
-  packaging: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_packaging_1783663277778.png",
-  handshake: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_packaging_1783663277778.png",
-  sortingHub: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_warehouse_1783663018647.png",
-  happyCustomer: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_packaging_1783663277778.png",
-  cityAerial: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_hero_1783662982136.png",
+  heroDelivery: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop",
+  warehouse: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop",
+  deliveryVan: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=1200&auto=format&fit=crop",
+  packaging: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=1200&auto=format&fit=crop",
+  handshake: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=1200&auto=format&fit=crop",
+  sortingHub: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop",
+  happyCustomer: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=1200&auto=format&fit=crop",
+  cityAerial: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop",
 };
 
 // ─── Data ────────────────────────────────────────────────────────────────────

@@ -7,16 +7,16 @@ import { motion } from "motion/react";
 import Link from "next/link";
 
 const ALL_SERVICES = [
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_van_1783663038707.png", icon: Truck, title: "Domestic Courier", desc: "Fast, reliable door-to-door delivery across 18,000+ pin codes in India." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_plane_1783663291891.png", icon: Globe, title: "International Courier", desc: "Express delivery across 220+ countries with custom clearance assistance." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_plane_1783663291891.png", icon: Plane, title: "Air Cargo", desc: "High-priority cargo operations for commercial freight and urgent shipments." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_van_1783663038707.png", icon: Truck, title: "Surface Cargo", desc: "Economical shipping for bulk and heavy consignments via ground network." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_van_1783663038707.png", icon: Zap, title: "Express Delivery", desc: "SLA-backed same-day/next-day shipping within major metro corridors." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_warehouse_1783663018647.png", icon: Package, title: "Bulk Shipping", desc: "Custom logistics plans and special rates for heavy shipments and bulk freight." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_packaging_1783663277778.png", icon: Building2, title: "Corporate Shipping", desc: "Dedicated business client portals with credit facilities and automated booking." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_warehouse_1783663018647.png", icon: ShoppingCart, title: "Ecommerce Shipping", desc: "API integrations, Cash on Delivery (COD) services, and automatic status updates." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_packaging_1783663277778.png", icon: RefreshCw, title: "Reverse Logistics", desc: "Hassle-free return options with verification checks for ecommerce stores." },
-  { img: "/api/image?file=/Users/guruprasad/.gemini/antigravity-ide/brain/33744343-a814-4de8-a237-7ab70168ae57/logistics_van_1783663038707.png", icon: Home, title: "Door Pickup", desc: "Convenient doorstep pickup scheduled online through our quotation engine." },
+  { img: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=1200&auto=format&fit=crop", icon: Truck, title: "Domestic Courier", desc: "Fast, reliable door-to-door delivery across 18,000+ pin codes in India." },
+  { img: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop", icon: Globe, title: "International Courier", desc: "Express delivery across 220+ countries with custom clearance assistance." },
+  { img: "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?q=80&w=1200&auto=format&fit=crop", icon: Plane, title: "Air Cargo", desc: "High-priority cargo operations for commercial freight and urgent shipments." },
+  { img: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=1200&auto=format&fit=crop", icon: Truck, title: "Surface Cargo", desc: "Economical shipping for bulk and heavy consignments via ground network." },
+  { img: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=1200&auto=format&fit=crop", icon: Zap, title: "Express Delivery", desc: "SLA-backed same-day/next-day shipping within major metro corridors." },
+  { img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop", icon: Package, title: "Bulk Shipping", desc: "Custom logistics plans and special rates for heavy shipments and bulk freight." },
+  { img: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=1200&auto=format&fit=crop", icon: Building2, title: "Corporate Shipping", desc: "Dedicated business client portals with credit facilities and automated booking." },
+  { img: "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?q=80&w=1200&auto=format&fit=crop", icon: ShoppingCart, title: "Ecommerce Shipping", desc: "API integrations, Cash on Delivery (COD) services, and automatic status updates." },
+  { img: "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?q=80&w=1200&auto=format&fit=crop", icon: RefreshCw, title: "Reverse Logistics", desc: "Hassle-free return options with verification checks for ecommerce stores." },
+  { img: "https://images.unsplash.com/photo-1519003722824-194d4455a60c?q=80&w=1200&auto=format&fit=crop", icon: Home, title: "Door Pickup", desc: "Convenient doorstep pickup scheduled online through our quotation engine." },
 ];
 
 export default function ServicesPage() {
