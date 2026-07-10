@@ -46,6 +46,17 @@ export default function AdminPanel() {
   const [bulkPincodesJson, setBulkPincodesJson] = useState("");
   const [contactMessages, setContactMessages] = useState<any[]>([]);
 
+  // Auxiliary data
+  const [zones, setZones] = useState<any[]>([]);
+  const [serviceTypes, setServiceTypes] = useState<any[]>([]);
+
+  // Creation forms
+  const [isAddingCourier, setIsAddingCourier] = useState(false);
+  const [newCourier, setNewCourier] = useState({ name: "", code: "", priority: 1, trackingUrl: "" });
+
+  const [isAddingPricingRule, setIsAddingPricingRule] = useState(false);
+  const [newPricingRule, setNewPricingRule] = useState({ courierPartnerId: "", zoneId: "", serviceTypeId: "", basePrice: "", additionalKgPrice: "", fuelSurchargePercent: "" });
+
   // Media states
   const [mediaList, setMediaList] = useState<any[]>([]);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -102,7 +113,11 @@ export default function AdminPanel() {
       } else if (activeTab === "pricing") {
         const res = await fetch("/api/admin/pricing-rules");
         const data = await res.json();
-        if (data.success) setPricingRules(data.rules);
+        if (data.success) {
+          setPricingRules(data.rules);
+          setZones(data.zones || []);
+          setServiceTypes(data.serviceTypes || []);
+        }
       } else if (activeTab === "pincodes") {
         const res = await fetch("/api/admin/pincodes?limit=100");
         const data = await res.json();
@@ -143,6 +158,44 @@ export default function AdminPanel() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handleCourierCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/admin/couriers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newCourier),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Courier created successfully.");
+        setIsAddingCourier(false);
+        setNewCourier({ name: "", code: "", priority: 1, trackingUrl: "" });
+        fetchTabItems();
+      } else {
+        setError(data.error || "Failed to create courier.");
+      }
+    } catch (err) {
+      setError("An error occurred while creating courier.");
+    }
+  };
+
+  const handleCourierDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this courier?")) return;
+    try {
+      const res = await fetch(`/api/admin/couriers?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Courier deleted successfully.");
+        fetchTabItems();
+      } else {
+        setError(data.error || "Failed to delete courier.");
+      }
+    } catch (err) {
+      setError("An error occurred while deleting courier.");
     }
   };
 
@@ -195,6 +248,44 @@ export default function AdminPanel() {
       }
     } catch (err) {
       console.error(err);
+    }
+  };
+
+  const handlePricingCreate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const res = await fetch("/api/admin/pricing-rules", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newPricingRule),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Pricing rule created successfully.");
+        setIsAddingPricingRule(false);
+        setNewPricingRule({ courierPartnerId: "", zoneId: "", serviceTypeId: "", basePrice: "", additionalKgPrice: "", fuelSurchargePercent: "" });
+        fetchTabItems();
+      } else {
+        setError(data.error || "Failed to create pricing rule.");
+      }
+    } catch (err) {
+      setError("An error occurred while creating pricing rule.");
+    }
+  };
+
+  const handlePricingDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this pricing rule?")) return;
+    try {
+      const res = await fetch(`/api/admin/pricing-rules?id=${id}`, { method: "DELETE" });
+      const data = await res.json();
+      if (data.success) {
+        setMessage("Pricing rule deleted successfully.");
+        fetchTabItems();
+      } else {
+        setError(data.error || "Failed to delete pricing rule.");
+      }
+    } catch (err) {
+      setError("An error occurred while deleting pricing rule.");
     }
   };
 
@@ -567,7 +658,36 @@ export default function AdminPanel() {
         {/* Tab 3: Courier configs */}
         {activeTab === "couriers" && (
           <div className="space-y-8">
-            <h1 className="text-2xl font-black text-gray-900">Courier Partner Configurations</h1>
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-black text-gray-900">Courier Partner Configurations</h1>
+              <button 
+                onClick={() => setIsAddingCourier(!isAddingCourier)}
+                className="bg-[#111827] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800 transition-colors"
+              >
+                + Add Courier
+              </button>
+            </div>
+
+            {isAddingCourier && (
+              <form onSubmit={handleCourierCreate} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
+                <h3 className="font-bold text-gray-900 text-sm">Add New Courier</h3>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Name</label>
+                    <input type="text" value={newCourier.name} onChange={(e) => setNewCourier({...newCourier, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BlueDart" required />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Code</label>
+                    <input type="text" value={newCourier.code} onChange={(e) => setNewCourier({...newCourier, code: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BLUEDART" required />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <button type="button" onClick={() => setIsAddingCourier(false)} className="text-xs text-gray-500 hover:underline cursor-pointer">Cancel</button>
+                  <button type="submit" className="bg-[#FF7A00] text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Save</button>
+                </div>
+              </form>
+            )}
+
             <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
@@ -577,6 +697,7 @@ export default function AdminPanel() {
                     <th className="pb-3">Priority</th>
                     <th className="pb-3">Status</th>
                     <th className="pb-3">API Integration</th>
+                    <th className="pb-3">Action</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-50">
@@ -603,6 +724,11 @@ export default function AdminPanel() {
                         </button>
                       </td>
                       <td className="py-4 text-xs text-gray-400">Mock Mode (Plug-in ready)</td>
+                      <td className="py-4">
+                        <button onClick={() => handleCourierDelete(c.id)} className="text-red-400 hover:text-red-600 cursor-pointer p-1 rounded-lg hover:bg-red-50">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -614,7 +740,60 @@ export default function AdminPanel() {
         {/* Tab 4: Pricing rules */}
         {activeTab === "pricing" && (
           <div className="space-y-8">
-            <h1 className="text-2xl font-black text-gray-900">Dynamic Pricing Rules Engine</h1>
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-black text-gray-900">Dynamic Pricing Rules Engine</h1>
+              <button 
+                onClick={() => setIsAddingPricingRule(!isAddingPricingRule)}
+                className="bg-[#111827] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800 transition-colors"
+              >
+                + Add Rule
+              </button>
+            </div>
+
+            {isAddingPricingRule && (
+              <form onSubmit={handlePricingCreate} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-2xl space-y-4">
+                <h3 className="font-bold text-gray-900 text-sm">Add New Pricing Rule</h3>
+                <div className="grid grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Courier</label>
+                    <select value={newPricingRule.courierPartnerId} onChange={(e) => setNewPricingRule({...newPricingRule, courierPartnerId: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required>
+                      <option value="">Select...</option>
+                      {couriers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Zone</label>
+                    <select value={newPricingRule.zoneId} onChange={(e) => setNewPricingRule({...newPricingRule, zoneId: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required>
+                      <option value="">Select...</option>
+                      {zones.map(z => <option key={z.id} value={z.id}>{z.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Service Type</label>
+                    <select value={newPricingRule.serviceTypeId} onChange={(e) => setNewPricingRule({...newPricingRule, serviceTypeId: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required>
+                      <option value="">Select...</option>
+                      {serviceTypes.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Base Price</label>
+                    <input type="number" value={newPricingRule.basePrice} onChange={(e) => setNewPricingRule({...newPricingRule, basePrice: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Additional KG Price</label>
+                    <input type="number" value={newPricingRule.additionalKgPrice} onChange={(e) => setNewPricingRule({...newPricingRule, additionalKgPrice: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Fuel Surcharge (%)</label>
+                    <input type="number" value={newPricingRule.fuelSurchargePercent} onChange={(e) => setNewPricingRule({...newPricingRule, fuelSurchargePercent: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required />
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-2">
+                  <button type="button" onClick={() => setIsAddingPricingRule(false)} className="text-xs text-gray-500 hover:underline cursor-pointer">Cancel</button>
+                  <button type="submit" className="bg-[#FF7A00] text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Save</button>
+                </div>
+              </form>
+            )}
 
             {selectedRule ? (
               <form onSubmit={handlePricingUpdateSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
@@ -695,6 +874,9 @@ export default function AdminPanel() {
                           className="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer"
                         >
                           Adjust
+                        </button>
+                        <button onClick={() => handlePricingDelete(r.id)} className="text-red-400 hover:text-red-600 cursor-pointer p-1 rounded-lg hover:bg-red-50 ml-2">
+                          <Trash2 className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
