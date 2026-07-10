@@ -35,24 +35,40 @@ export async function GET(request: Request) {
       ordersCount: c._count.orders,
     }));
 
-    // Generate standard mock chart data for admin view
-    const revenueData = [
-      { month: "Jan", revenue: Math.round(totalRevenue * 0.1) },
-      { month: "Feb", revenue: Math.round(totalRevenue * 0.15) },
-      { month: "Mar", revenue: Math.round(totalRevenue * 0.2) },
-      { month: "Apr", revenue: Math.round(totalRevenue * 0.25) },
-      { month: "May", revenue: Math.round(totalRevenue * 0.3) },
-      { month: "Jun", revenue: totalRevenue },
-    ];
+    // Generate real chart data from recent orders
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-    const orderData = [
-      { day: "Mon", orders: Math.round(totalOrders * 0.12) },
-      { day: "Tue", orders: Math.round(totalOrders * 0.18) },
-      { day: "Wed", orders: Math.round(totalOrders * 0.15) },
-      { day: "Thu", orders: Math.round(totalOrders * 0.22) },
-      { day: "Fri", orders: Math.round(totalOrders * 0.16) },
-      { day: "Sat", orders: Math.round(totalOrders * 0.17) },
-    ];
+    const recentOrders = await prisma.order.findMany({
+      where: { createdAt: { gte: thirtyDaysAgo } },
+      select: { createdAt: true, totalAmount: true, paymentStatus: true }
+    });
+
+    const revenueByMonth = new Map();
+    const ordersByDay = new Map();
+
+    // Initialize days
+    const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+    dayNames.forEach(d => ordersByDay.set(d, 0));
+
+    recentOrders.forEach(o => {
+      // Month Revenue
+      const month = o.createdAt.toLocaleString('default', { month: 'short' });
+      if (o.paymentStatus === "PAID") {
+        revenueByMonth.set(month, (revenueByMonth.get(month) || 0) + o.totalAmount);
+      }
+      
+      // Daily Orders (last 7 days approx, grouping by weekday)
+      const day = dayNames[o.createdAt.getDay()];
+      ordersByDay.set(day, ordersByDay.get(day) + 1);
+    });
+
+    const revenueData = Array.from(revenueByMonth.entries()).map(([month, revenue]) => ({ month, revenue }));
+    if (revenueData.length === 0) {
+      revenueData.push({ month: new Date().toLocaleString('default', { month: 'short' }), revenue: 0 });
+    }
+
+    const orderData = Array.from(ordersByDay.entries()).map(([day, orders]) => ({ day, orders }));
 
     return NextResponse.json({
       success: true,

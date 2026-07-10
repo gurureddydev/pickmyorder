@@ -515,9 +515,9 @@ export default function AdminPanel() {
                   <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
                     <th className="pb-3">Order Number</th>
                     <th className="pb-3">AWB</th>
-                    <th className="pb-3">Customer</th>
+                    <th className="pb-3">Sender</th>
                     <th className="pb-3">Courier</th>
-                    <th className="pb-3">State Route</th>
+                    <th className="pb-3">Receiver</th>
                     <th className="pb-3">Total Amount</th>
                     <th className="pb-3">Status</th>
                     <th className="pb-3">Action</th>
@@ -528,9 +528,17 @@ export default function AdminPanel() {
                     <tr key={o.id} className="hover:bg-gray-50/50">
                       <td className="py-4 font-bold text-gray-900">{o.orderNumber}</td>
                       <td className="py-4 text-gray-500 font-semibold">{o.awbNumber || "N/A"}</td>
-                      <td className="py-4 text-gray-700">{o.user?.name || o.user?.email}</td>
+                      <td className="py-4 text-gray-700">
+                        <div className="font-semibold text-xs">{o.pickupName}</div>
+                        <div className="text-[10px] text-gray-500">{o.pickupPhone}</div>
+                        <div className="text-[10px] text-gray-400 max-w-[120px] truncate" title={`${o.pickupAddress}, ${o.pickupPin}`}>{o.pickupAddress}, {o.pickupPin}</div>
+                      </td>
                       <td className="py-4 text-gray-700">{o.courierPartner?.name}</td>
-                      <td className="py-4 text-gray-500">{o.pickupPin} → {o.destPin}</td>
+                      <td className="py-4 text-gray-700">
+                        <div className="font-semibold text-xs">{o.destName}</div>
+                        <div className="text-[10px] text-gray-500">{o.destPhone}</div>
+                        <div className="text-[10px] text-gray-400 max-w-[120px] truncate" title={`${o.destAddress}, ${o.destPin}`}>{o.destAddress}, {o.destPin}</div>
+                      </td>
                       <td className="py-4 font-bold text-gray-900">₹{Math.round(o.totalAmount)}</td>
                       <td className="py-4">
                         <span className="text-[10px] font-bold px-2 py-0.5 rounded capitalize bg-orange-50 text-orange-700">
