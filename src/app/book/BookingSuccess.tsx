@@ -68,13 +68,22 @@ export default function BookingSuccess({ quote }: { quote: any }) {
       </div>
 
       <div className="flex flex-wrap justify-center gap-6 pt-6 border-t border-gray-100">
-        <button className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#FF7A00] transition-colors">
+        <Link href={`/track?awb=${trackingNo}`} className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#FF7A00] transition-colors">
           <MapPin className="w-4 h-4" /> Track Shipment
-        </button>
-        <button className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#25D366] transition-colors">
+        </Link>
+        <button 
+          onClick={() => window.open(`https://wa.me/?text=Track my PickMyOrder shipment: ${window.location.origin}/track?awb=${trackingNo}`, '_blank')}
+          className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#25D366] transition-colors"
+        >
           <MessageCircle className="w-4 h-4" /> Send on WhatsApp
         </button>
-        <button className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#111827] transition-colors">
+        <button 
+          onClick={() => {
+            navigator.clipboard.writeText(`${window.location.origin}/track?awb=${trackingNo}`);
+            alert('Tracking link copied to clipboard!');
+          }}
+          className="flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-[#111827] transition-colors"
+        >
           <Share2 className="w-4 h-4" /> Share Tracking Link
         </button>
       </div>
