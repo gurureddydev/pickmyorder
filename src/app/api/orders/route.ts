@@ -120,7 +120,7 @@ export async function POST(request: Request) {
     const orderData: any = {
       orderNumber,
       quote: { connect: { id: quote.id } },
-      courierPartnerId,
+      courierPartner: { connect: { id: courierPartnerId } },
       awbNumber,
       status: "PICKUP_SCHEDULED",
       pickupName,
@@ -139,10 +139,8 @@ export async function POST(request: Request) {
       paymentMethod,
       paymentStatus,
       invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+      ...(session?.user?.id ? { user: { connect: { id: session.user.id } } } : {}),
     };
-    if (session?.user?.id) {
-      orderData.userId = session.user.id;
-    }
     const order = await prisma.order.create({ data: orderData });
 
     // 3. Create initial tracking event within a transaction to ensure atomicity

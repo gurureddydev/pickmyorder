@@ -195,6 +195,7 @@ model Order {
   quoteId          String @db.ObjectId
   userId           String? @db.ObjectId
   courierPartnerId String @db.ObjectId
+  courierPartner   CourierPartner @relation(fields: [courierPartnerId], references: [id])
   awbNumber        String?  @unique
   status           String   @default("PICKUP_SCHEDULED") // PICKUP_SCHEDULED, etc.
   pickupName       String
