@@ -138,6 +138,8 @@ export default function MultiStepBooking() {
         paymentStatus: status
       };
 
+      console.log("Submitting order with payload:", payload);
+
       const res = await fetch("/api/orders", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -160,7 +162,74 @@ export default function MultiStepBooking() {
   };
 
   const handleCashPayment = () => submitOrder("CASH_ON_PICKUP", "PENDING");
-  const handleRazorpayPayment = () => submitOrder("RAZORPAY_ONLINE", "PAID");
+
+  const loadRazorpay = () => {
+    return new Promise((resolve) => {
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  const handleRazorpayPayment = async () => {
+    setLoading(true);
+    setError("");
+
+    const res = await loadRazorpay();
+    if (!res) {
+      setError("Razorpay SDK failed to load. Are you online?");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const totalAmount = quote!.total + (pkg.packing ? 50 : 0) + (pkg.insurance ? 150 : 0);
+      const orderRes = await fetch("/api/razorpay", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: totalAmount })
+      });
+      const orderData = await orderRes.json();
+
+      if (!orderData.success) {
+        setError("Could not create Razorpay order.");
+        setLoading(false);
+        return;
+      }
+
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TBqwUfDyJEA8EI",
+        amount: orderData.order.amount,
+        currency: orderData.order.currency,
+        name: "PickMyOrder",
+        description: "Shipment Booking",
+        order_id: orderData.order.id,
+        handler: async function (response: any) {
+          submitOrder("RAZORPAY_ONLINE", "PAID");
+        },
+        prefill: {
+          name: sender.name,
+          contact: sender.phone,
+        },
+        theme: {
+          color: "#FF7A00",
+        },
+      };
+
+      const paymentObject = new (window as any).Razorpay(options);
+      paymentObject.on("payment.failed", function (response: any) {
+        setError("Payment failed. Please try again.");
+      });
+      paymentObject.open();
+    } catch (err) {
+      console.error(err);
+      setError("Error initiating payment.");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   if (!isClient) return <div className="min-h-[60vh] flex items-center justify-center"><div className="w-8 h-8 border-4 border-[#FF7A00] border-t-transparent rounded-full animate-spin"></div></div>;
 
@@ -517,11 +586,11 @@ export default function MultiStepBooking() {
                       <div className="w-12 h-12 bg-gray-100 group-hover:bg-white rounded-xl flex items-center justify-center text-xl">💵</div>
                       <div>
                         <h4 className="font-bold text-gray-900">Cash on Pickup</h4>
-                        <p className="text-xs text-gray-500">Pay directly to our executive</p>
+                        <p className="text-xs text-gray-500">Cash or Pay</p>
                       </div>
                     </button>
                     
-                    <button onClick={() => setShowRazorpayMock(true)} disabled={loading} className="w-full border-2 border-gray-200 hover:border-[#FF7A00] rounded-2xl p-4 flex items-center gap-4 transition-all hover:bg-[#FF7A00]/5 text-left group cursor-pointer">
+                    <button onClick={handleRazorpayPayment} disabled={loading} className="w-full border-2 border-gray-200 hover:border-[#FF7A00] rounded-2xl p-4 flex items-center gap-4 transition-all hover:bg-[#FF7A00]/5 text-left group cursor-pointer">
                       <div className="w-12 h-12 bg-gray-100 group-hover:bg-white rounded-xl flex items-center justify-center text-xl">💳</div>
                       <div>
                         <h4 className="font-bold text-gray-900">Online / QR Code</h4>

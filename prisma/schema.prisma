@@ -193,7 +193,7 @@ model Order {
   id String @id @default(auto()) @map("_id") @db.ObjectId
   orderNumber      String   @unique
   quoteId          String @db.ObjectId
-  userId           String @db.ObjectId
+  userId           String? @db.ObjectId
   courierPartnerId String @db.ObjectId
   awbNumber        String?  @unique
   status           String   @default("PICKUP_SCHEDULED") // PICKUP_SCHEDULED, etc.
@@ -216,8 +216,10 @@ model Order {
   invoiceNumber    String?  @unique
 
   quote          Quote          @relation(fields: [quoteId], references: [id])
-  user           User           @relation(fields: [userId], references: [id])
-  courierPartner CourierPartner @relation(fields: [courierPartnerId], references: [id])
+  user           User?           @relation(fields: [userId], references: [id])
+  razorpayPaymentId String?
+  razorpaySignature String?
+
   trackingEvents TrackingEvent[]
 
   createdAt DateTime @default(now())

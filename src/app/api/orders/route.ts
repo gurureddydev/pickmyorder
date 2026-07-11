@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     }
 
     const orders = await prisma.order.findMany({
-      where: { userId: session.user.id },
+      where: { userId: session?.user?.id ?? undefined },
       include: { courierPartner: true },
       orderBy: { createdAt: "desc" },
     });
@@ -45,16 +45,19 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   try {
     const session = await auth();
-    if (!session || !session.user) {
-      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
-    }
+    // Allow guest checkout, no auth check here
 
     const body = await request.json();
+    console.log("POST /api/orders received body:", body);
+
     const parsed = orderSchema.safeParse(body);
 
     if (!parsed.success) {
+      console.log("Zod validation failed:", parsed.error.format());
       return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
+
+    console.log("Validation passed. Data:", parsed.data);
 
     const {
       pickupName,
@@ -76,20 +79,23 @@ export async function POST(request: Request) {
     } = parsed.data;
 
     // 1. Create a dummy Quote record for DB integrity
+    const quoteData: any = {
+      pickupPincode: pickupPin,
+      destPincode: destPin,
+      packageType: "parcel",
+      transport: "DOMESTIC",
+      weight: 1.0,
+      length: 10,
+      width: 10,
+      height: 10,
+      packing: false,
+      pricingDetails: JSON.stringify({ total: totalAmount }),
+    };
+    if (session?.user?.id) {
+      quoteData.userId = session.user.id;
+    }
     const quote = await prisma.quote.create({
-      data: {
-        pickupPincode: pickupPin,
-        destPincode: destPin,
-        packageType: "parcel",
-        transport: "DOMESTIC",
-        weight: 1.0,
-        length: 10,
-        width: 10,
-        height: 10,
-        packing: false,
-        pricingDetails: JSON.stringify({ total: totalAmount }),
-        userId: session.user.id,
-      },
+      data: quoteData,
     });
 
     // 2. Generate unique order details
@@ -97,31 +103,34 @@ export async function POST(request: Request) {
     const orderNumber = `PMO-${10000 + count + 1}`;
     const awbNumber = `AWB${Math.floor(1000000000 + Math.random() * 9000000000)}`;
 
+    const orderData: any = {
+      orderNumber,
+      quoteId: quote.id,
+      courierPartnerId,
+      awbNumber,
+      status: "PICKUP_SCHEDULED",
+      pickupName,
+      pickupPhone,
+      pickupAddress,
+      pickupCity,
+      pickupState,
+      pickupPin,
+      destName,
+      destPhone,
+      destAddress,
+      destCity,
+      destState,
+      destPin,
+      totalAmount,
+      paymentMethod,
+      paymentStatus,
+      invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
+    };
+    if (session?.user?.id) {
+      orderData.userId = session.user.id;
+    }
     const order = await prisma.order.create({
-      data: {
-        orderNumber,
-        quoteId: quote.id,
-        userId: session.user.id!,
-        courierPartnerId,
-        awbNumber,
-        status: "PICKUP_SCHEDULED",
-        pickupName,
-        pickupPhone,
-        pickupAddress,
-        pickupCity,
-        pickupState,
-        pickupPin,
-        destName,
-        destPhone,
-        destAddress,
-        destCity,
-        destState,
-        destPin,
-        totalAmount,
-        paymentMethod,
-        paymentStatus,
-        invoiceNumber: `INV-${Date.now().toString().slice(-6)}`,
-      },
+      data: orderData,
     });
 
     // 3. Create initial tracking event

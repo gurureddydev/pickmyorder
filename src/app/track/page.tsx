@@ -1,5 +1,6 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import Navbar from "@/app/components/landing/Navbar";
 import Footer from "@/app/components/landing/Footer";
 import { Search, MapPin, Calendar, Clock, CheckCircle2, Circle } from "lucide-react";
@@ -25,17 +26,17 @@ interface OrderDetails {
   createdAt: string;
 }
 
-export default function TrackPage() {
-  const [query, setQuery] = useState("");
+function TrackContent() {
+  const searchParams = useSearchParams();
+  const awbParam = searchParams.get("awb");
+  const [query, setQuery] = useState(awbParam || "");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [shipment, setShipment] = useState<OrderDetails | null>(null);
   const [events, setEvents] = useState<TrackingEvent[]>([]);
 
-  const handleTrack = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!query) return;
-
+  const fetchTracking = async (searchQuery: string) => {
+    if (!searchQuery) return;
     setLoading(true);
     setError("");
     setShipment(null);
@@ -45,7 +46,7 @@ export default function TrackPage() {
       const response = await fetch("/api/tracking/search", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ query }),
+        body: JSON.stringify({ query: searchQuery }),
       });
 
       const res = await response.json();
@@ -61,6 +62,17 @@ export default function TrackPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  useEffect(() => {
+    if (awbParam) {
+      fetchTracking(awbParam);
+    }
+  }, [awbParam]);
+
+  const handleTrack = async (e: React.FormEvent) => {
+    e.preventDefault();
+    fetchTracking(query);
   };
 
   const stepsList = [
@@ -221,5 +233,13 @@ export default function TrackPage() {
       </main>
       <Footer />
     </div>
+  );
+}
+
+export default function TrackPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#F8FAFC] pt-28 pb-20 text-center">Loading tracking details...</div>}>
+      <TrackContent />
+    </Suspense>
   );
 }
