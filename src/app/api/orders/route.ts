@@ -85,6 +85,14 @@ export async function POST(request: Request) {
       paymentStatus = "PAID",
     } = parsed.data;
 
+    // Verify courierPartnerId exists
+    const partner = await prisma.courierPartner.findUnique({
+      where: { id: courierPartnerId },
+    });
+    if (!partner) {
+      return NextResponse.json({ success: false, error: "Invalid courierPartnerId" }, { status: 400 });
+    }
+
     // 1. Create a dummy Quote record for DB integrity
     const quoteData: any = {
       pickupPincode: pickupPin,
