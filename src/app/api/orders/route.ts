@@ -119,7 +119,7 @@ export async function POST(request: Request) {
 
     const orderData: any = {
       orderNumber,
-      quoteId: quote.id,
+      quote: { connect: { id: quote.id } },
       courierPartnerId,
       awbNumber,
       status: "PICKUP_SCHEDULED",
