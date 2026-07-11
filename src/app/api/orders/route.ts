@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { auth } from "@/auth";
 import { z } from "zod";
 
@@ -50,6 +51,12 @@ export async function POST(request: Request) {
     const body = await request.json();
     console.log("POST /api/orders received body:", body);
 
+    // Basic existence check
+    if (!body || typeof body !== "object") {
+      console.error("Invalid request body");
+      return NextResponse.json({ success: false, error: "Invalid request body" }, { status: 400 });
+    }
+
     const parsed = orderSchema.safeParse(body);
 
     if (!parsed.success) {
@@ -94,13 +101,12 @@ export async function POST(request: Request) {
     if (session?.user?.id) {
       quoteData.userId = session.user.id;
     }
-    const quote = await prisma.quote.create({
-      data: quoteData,
-    });
+    const quote = await prisma.quote.create({ data: quoteData });
 
     // 2. Generate unique order details
     const count = await prisma.order.count();
-    const orderNumber = `PMO-${10000 + count + 1}`;
+    const uniqueSuffix = Date.now().toString(36) + Math.random().toString(36).substring(2, 8);
+    const orderNumber = `PMO-${10000 + count + 1}-${uniqueSuffix}`;
     const awbNumber = `AWB${Math.floor(1000000000 + Math.random() * 9000000000)}`;
 
     const orderData: any = {
@@ -129,23 +135,32 @@ export async function POST(request: Request) {
     if (session?.user?.id) {
       orderData.userId = session.user.id;
     }
-    const order = await prisma.order.create({
-      data: orderData,
-    });
+    const order = await prisma.order.create({ data: orderData });
 
-    // 3. Create initial tracking event
-    await prisma.trackingEvent.create({
-      data: {
-        orderId: order.id,
-        status: "PICKUP_SCHEDULED",
-        location: pickupCity,
-        description: "Pickup scheduled. Executive details will be shared via SMS shortly.",
-      },
-    });
+    // 3. Create initial tracking event within a transaction to ensure atomicity
+    await prisma.$transaction([
+      prisma.trackingEvent.create({
+        data: {
+          orderId: order.id,
+          status: "PICKUP_SCHEDULED",
+          location: pickupCity,
+          description: "Pickup scheduled. Executive details will be shared via SMS shortly.",
+        },
+      }),
+    ]);
+
 
     return NextResponse.json({ success: true, order });
   } catch (error) {
     console.error("POST Orders API Error:", error);
-    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+    // Handle known Prisma errors
+    if (error instanceof Prisma.PrismaClientKnownRequestError) {
+      if (error.code === "P2002") {
+        // Unique constraint violation
+        return NextResponse.json({ success: false, error: "Duplicate order identifier" }, { status: 409 });
+      }
+    }
+    const message = error instanceof Error ? error.message : "Internal server error";
+    return NextResponse.json({ success: false, error: message }, { status: 500 });
   }
 }
