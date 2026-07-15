@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { motion } from "motion/react";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Truck, Zap } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface FormState {
@@ -94,6 +94,49 @@ export default function BookingForm() {
 
   const formatCurrency = (n: number) =>
     `₹${Math.round(n).toLocaleString("en-IN")}`;
+
+  const getProcessedQuotes = () => {
+    if (!quotes || quotes.length === 0) return [];
+    
+    const sorted = [...quotes].sort((a, b) => a.total - b.total);
+    const standardOptions = sorted.filter(q => q.courierCode !== "BLUEDART" && q.courierCode !== "DTDC");
+    const expressOptions = sorted.filter(q => q.courierCode === "BLUEDART" || q.courierCode === "DTDC");
+    
+    const result = [];
+    
+    if (standardOptions.length > 0) {
+      result.push({
+        ...standardOptions[0],
+        displayName: "Standard Shipping",
+        displayType: "STANDARD"
+      });
+    }
+    
+    if (expressOptions.length > 0) {
+      result.push({
+        ...expressOptions[0],
+        displayName: "Express Shipping",
+        displayType: "EXPRESS"
+      });
+    }
+    
+    if (result.length === 0 && sorted.length > 0) {
+      result.push({
+        ...sorted[0],
+        displayName: "Standard Shipping",
+        displayType: "STANDARD"
+      });
+      if (sorted.length > 1) {
+        result.push({
+          ...sorted[sorted.length - 1],
+          displayName: "Express Shipping",
+          displayType: "EXPRESS"
+        });
+      }
+    }
+    
+    return result.sort((a, b) => (a.displayType === "STANDARD" ? -1 : 1));
+  };
 
   return (
     <div id="calculator" className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-[440px]">
@@ -230,41 +273,43 @@ export default function BookingForm() {
           className="mt-5 space-y-3 max-h-[300px] overflow-y-auto pr-1"
         >
           <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
-            Available Couriers (Billed: {quotes[0].billedWeight.toFixed(2)} kg)
+            Available Rates (Billed: {quotes[0].billedWeight.toFixed(2)} kg)
           </p>
-          {quotes.map((q) => (
-            <div
-              key={q.courierId}
-              className="bg-[#F8FAFC] border border-gray-100 rounded-xl p-3 flex items-center justify-between hover:border-[#FF7A00]/30 transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-white rounded-lg border border-gray-100 flex items-center justify-center p-1">
-                  <span className="text-xs font-bold text-[#FF7A00] uppercase truncate">
-                    {q.courierCode.substring(0, 4)}
+          {getProcessedQuotes().map((q) => {
+            const isExpress = q.displayType === "EXPRESS";
+            const Icon = isExpress ? Zap : Truck;
+            return (
+              <div
+                key={q.courierId}
+                className="bg-[#F8FAFC] border border-gray-100 rounded-xl p-3.5 flex items-center justify-between hover:border-[#FF7A00]/30 transition-colors animate-fade-in"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-[#FF7A00]/10 rounded-xl flex items-center justify-center">
+                    <Icon className="w-5 h-5 text-[#FF7A00]" />
+                  </div>
+                  <div>
+                    <h4 className="font-extrabold text-gray-900 text-sm">{q.displayName}</h4>
+                    <p className="text-[11px] text-gray-400">ETA: {q.etaDays} days • Insured & Secure</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <span className="text-[#FF7A00] font-extrabold text-base block">
+                    {formatCurrency(q.total)}
                   </span>
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-900 text-sm">{q.courierName}</h4>
-                  <p className="text-[11px] text-gray-400">ETA: {q.etaDays} days</p>
+                  <button
+                    onClick={() => {
+                      sessionStorage.setItem("bookingFormState", JSON.stringify(form));
+                      sessionStorage.setItem("selectedQuote", JSON.stringify(q));
+                      router.push(`/book`);
+                    }}
+                    className="text-[11px] bg-gray-950 text-white font-bold px-3 py-1 rounded hover:bg-[#FF7A00] transition-colors mt-0.5 cursor-pointer"
+                  >
+                    Book
+                  </button>
                 </div>
               </div>
-              <div className="text-right">
-                <span className="text-[#FF7A00] font-extrabold text-base block">
-                  {formatCurrency(q.total)}
-                </span>
-                <button
-                  onClick={() => {
-                    sessionStorage.setItem("bookingFormState", JSON.stringify(form));
-                    sessionStorage.setItem("selectedQuote", JSON.stringify(q));
-                    router.push(`/book`);
-                  }}
-                  className="text-[11px] bg-gray-950 text-white font-bold px-2.5 py-1 rounded hover:bg-[#FF7A00] transition-colors mt-0.5"
-                >
-                  Book
-                </button>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </motion.div>
       )}
 

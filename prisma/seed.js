@@ -41,12 +41,6 @@ async function main() {
   const serviceTypes = [
     await prisma.serviceType.create({ data: { name: "Document", code: "document", description: "Envelopes and documents up to 500g" } }),
     await prisma.serviceType.create({ data: { name: "Parcel", code: "parcel", description: "Standard parcels and packages" } }),
-    await prisma.serviceType.create({ data: { name: "Fragile Item", code: "fragile", description: "Glassware, ceramics, electronics needing extra care" } }),
-    await prisma.serviceType.create({ data: { name: "Heavy Cargo", code: "heavy", description: "Shipments exceeding 10kg" } }),
-    await prisma.serviceType.create({ data: { name: "Liquid / Gel", code: "liquid", description: "Perfumes, oils, non-hazardous liquid items" } }),
-    await prisma.serviceType.create({ data: { name: "Electronics", code: "electronics", description: "Phones, laptops, accessories" } }),
-    await prisma.serviceType.create({ data: { name: "Medicine", code: "medicine", description: "Prescription drugs and pharmaceutical cargo" } }),
-    await prisma.serviceType.create({ data: { name: "Food / Perishable", code: "food", description: "Sweets, dry items, vacuum packed foods" } }),
   ];
   console.log(`Created ${serviceTypes.length} service types.`);
 
@@ -97,8 +91,6 @@ async function main() {
         if (zone.name === "Zone D") zoneMultiplier = 2.8;
 
         let serviceMultiplier = 1.0;
-        if (service.code === "fragile") serviceMultiplier = 1.3;
-        if (service.code === "liquid") serviceMultiplier = 1.25;
         if (service.code === "document") serviceMultiplier = 0.8;
 
         await prisma.pricingRule.create({

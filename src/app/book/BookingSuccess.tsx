@@ -63,10 +63,11 @@ export default function BookingSuccess({ quote, order }: { quote: any, order: an
           <p className="text-base font-semibold text-gray-900">{quote.etaDays} Days</p>
         </div>
         <div>
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Courier Partner</p>
+          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Shipping Class</p>
           <div className="flex items-center gap-2">
-            <span className="bg-white px-2 py-1 rounded text-xs font-bold text-[#FF7A00] border">{quote.courierCode.substring(0, 4)}</span>
-            <span className="text-base font-semibold text-gray-900">{quote.courierName}</span>
+            <span className="text-base font-semibold text-gray-900">
+              {quote.courierCode === "BLUEDART" || quote.courierCode === "DTDC" ? "Express Delivery" : "Standard Delivery"}
+            </span>
           </div>
         </div>
       </div>

@@ -21,6 +21,13 @@ const orderSchema = z.object({
   courierPartnerId: z.string().min(1, "Courier partner required"),
   paymentMethod: z.string().optional(),
   paymentStatus: z.string().optional(),
+  packageType: z.string().optional().default("parcel"),
+  transport: z.enum(["DOMESTIC", "INTERNATIONAL"]).optional().default("DOMESTIC"),
+  weight: z.coerce.number().optional().default(1.0),
+  length: z.coerce.number().optional().default(10),
+  width: z.coerce.number().optional().default(10),
+  height: z.coerce.number().optional().default(10),
+  packing: z.boolean().optional().default(false),
 });
 
 export async function GET(request: Request) {
@@ -83,6 +90,13 @@ export async function POST(request: Request) {
       courierPartnerId,
       paymentMethod = "PREPAID",
       paymentStatus = "PAID",
+      packageType,
+      transport,
+      weight,
+      length,
+      width,
+      height,
+      packing,
     } = parsed.data;
 
     // Verify courierPartnerId exists
@@ -93,17 +107,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: "Invalid courierPartnerId" }, { status: 400 });
     }
 
-    // 1. Create a dummy Quote record for DB integrity
+    // 1. Create a dynamic Quote record for DB integrity
     const quoteData: any = {
       pickupPincode: pickupPin,
       destPincode: destPin,
-      packageType: "parcel",
-      transport: "DOMESTIC",
-      weight: 1.0,
-      length: 10,
-      width: 10,
-      height: 10,
-      packing: false,
+      packageType,
+      transport,
+      weight,
+      length,
+      width,
+      height,
+      packing,
       pricingDetails: JSON.stringify({ total: totalAmount }),
     };
     if (session?.user?.id) {

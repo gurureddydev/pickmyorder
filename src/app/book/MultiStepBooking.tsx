@@ -135,7 +135,14 @@ export default function MultiStepBooking() {
         totalAmount: quote!.total + (pkg.packing ? 50 : 0) + (pkg.insurance ? 150 : 0),
         courierPartnerId: quote!.courierId,
         paymentMethod: method,
-        paymentStatus: status
+        paymentStatus: status,
+        packageType: baseForm?.packageType || "parcel",
+        transport: baseForm?.transport || "DOMESTIC",
+        weight: parseFloat(pkg.weight || baseForm?.weight || "1.0"),
+        length: parseFloat(baseForm?.length || "10"),
+        width: parseFloat(baseForm?.width || "10"),
+        height: parseFloat(baseForm?.height || "10"),
+        packing: pkg.packing || false,
       };
 
       console.log("Submitting order with payload:", payload);
@@ -299,8 +306,10 @@ export default function MultiStepBooking() {
               <span className="font-medium">{pkg.weight || baseForm.weight} kg</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-gray-400">Courier Partner</span>
-              <span className="font-bold text-[#FF7A00]">{quote.courierName}</span>
+              <span className="text-gray-400">Shipping Class</span>
+              <span className="font-bold text-[#FF7A00]">
+                {quote.courierCode === "BLUEDART" || quote.courierCode === "DTDC" ? "Express Delivery" : "Standard Delivery"}
+              </span>
             </div>
             <div className="flex justify-between items-center bg-[#FF7A00]/10 px-3 py-2 rounded-lg mt-2">
               <span className="text-[#FF7A00] text-xs font-bold">ETA</span>
@@ -417,17 +426,19 @@ export default function MultiStepBooking() {
 
               <div className="mb-6">
                 <label className="block text-xs font-bold text-gray-700 uppercase tracking-wider mb-3">Package Category</label>
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                  {["Document", "Parcel", "Fragile", "Electronics", "Medical", "Others"].map(cat => (
+                <div className="grid grid-cols-2 gap-3">
+                  {["Document", "Parcel"].map(cat => (
                     <div 
                       key={cat} 
-                      onClick={() => setPkg({...pkg, category: cat})}
-                      className={`cursor-pointer border rounded-xl p-3 text-center transition-all ${pkg.category === cat ? 'border-[#FF7A00] bg-[#FF7A00]/5 text-[#FF7A00] font-bold shadow-sm' : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50 font-medium'}`}
+                      className={`border rounded-xl p-3.5 text-center transition-all ${pkg.category === cat ? 'border-[#FF7A00] bg-[#FF7A00]/5 text-[#FF7A00] font-bold shadow-sm' : 'border-gray-100 text-gray-300 bg-gray-50/50 font-medium'}`}
                     >
                       <span className="text-sm">{cat}</span>
                     </div>
                   ))}
                 </div>
+                <p className="text-[11px] text-gray-400 mt-2 font-medium">
+                  The package category matches the parameters of your selected quote.
+                </p>
               </div>
 
               <div className="grid sm:grid-cols-2 gap-5 mb-8">

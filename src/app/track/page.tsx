@@ -150,8 +150,10 @@ function TrackContent() {
                   <span className="font-bold text-gray-700">{shipment.orderNumber}</span>
                 </div>
                 <div>
-                  <span className="block text-[11px] font-bold text-gray-400 uppercase">Carrier</span>
-                  <span className="font-bold text-gray-700">{shipment.courierName}</span>
+                  <span className="block text-[11px] font-bold text-gray-400 uppercase">Shipping Class</span>
+                  <span className="font-bold text-gray-700">
+                    {shipment.courierName === "Blue Dart" || shipment.courierName === "DTDC" ? "Express Delivery" : "Standard Delivery"}
+                  </span>
                 </div>
                 <div>
                   <span className="block text-[11px] font-bold text-gray-400 uppercase">Route</span>
