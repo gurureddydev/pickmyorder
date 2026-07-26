@@ -54,7 +54,7 @@ function LoginForm() {
       >
         <div>
           <div className="flex justify-center mb-6">
-            <img src="/logo-icon.png" alt="PickMyOrder Logo" className="h-10 object-contain" />
+            <img src="/logo.png" alt="PickMyOrder Logo" className="h-10 object-contain" />
           </div>
           <h2 className="text-2xl font-black text-gray-900 text-center tracking-tight">Welcome Back</h2>
           <p className="text-xs text-gray-400 text-center mt-1.5 mb-6">

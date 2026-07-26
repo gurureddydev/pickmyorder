@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 interface FormState {
   pickupPin: string;
   destPin: string;
+  phoneNumber: string;
   packageType: string;
   transport: "DOMESTIC" | "INTERNATIONAL";
   weight: string;
@@ -38,6 +39,7 @@ export default function BookingForm() {
   const [form, setForm] = useState<FormState>({
     pickupPin: "",
     destPin: "",
+    phoneNumber: "",
     packageType: "parcel",
     transport: "DOMESTIC",
     weight: "",
@@ -61,6 +63,10 @@ export default function BookingForm() {
       setError("Please enter Pickup Pincode, Destination Pincode, and Weight.");
       return;
     }
+    if (!form.phoneNumber || form.phoneNumber.replace(/\D/g, "").length < 10) {
+      setError("Please enter a valid 10-digit mobile number.");
+      return;
+    }
 
     setLoading(true);
     setError("");
@@ -76,7 +82,16 @@ export default function BookingForm() {
       if (!res.success) {
         setError(res.message || "Failed to calculate quotes.");
       } else {
-        setQuotes(res.quotes);
+        const availableQuotes = res.quotes;
+        if (availableQuotes && availableQuotes.length > 0) {
+          const sorted = [...availableQuotes].sort((a: QuoteResult, b: QuoteResult) => a.total - b.total);
+          const selectedQuote = sorted[0];
+          sessionStorage.setItem("bookingFormState", JSON.stringify(form));
+          sessionStorage.setItem("selectedQuote", JSON.stringify(selectedQuote));
+          router.push(`/book`);
+        } else {
+          setError("No courier partners currently service this zone combination.");
+        }
       }
     } catch (err) {
       console.error(err);
@@ -95,48 +110,6 @@ export default function BookingForm() {
   const formatCurrency = (n: number) =>
     `₹${Math.round(n).toLocaleString("en-IN")}`;
 
-  const getProcessedQuotes = () => {
-    if (!quotes || quotes.length === 0) return [];
-    
-    const sorted = [...quotes].sort((a, b) => a.total - b.total);
-    const standardOptions = sorted.filter(q => q.courierCode !== "BLUEDART" && q.courierCode !== "DTDC");
-    const expressOptions = sorted.filter(q => q.courierCode === "BLUEDART" || q.courierCode === "DTDC");
-    
-    const result = [];
-    
-    if (standardOptions.length > 0) {
-      result.push({
-        ...standardOptions[0],
-        displayName: "Standard Shipping",
-        displayType: "STANDARD"
-      });
-    }
-    
-    if (expressOptions.length > 0) {
-      result.push({
-        ...expressOptions[0],
-        displayName: "Express Shipping",
-        displayType: "EXPRESS"
-      });
-    }
-    
-    if (result.length === 0 && sorted.length > 0) {
-      result.push({
-        ...sorted[0],
-        displayName: "Standard Shipping",
-        displayType: "STANDARD"
-      });
-      if (sorted.length > 1) {
-        result.push({
-          ...sorted[sorted.length - 1],
-          displayName: "Express Shipping",
-          displayType: "EXPRESS"
-        });
-      }
-    }
-    
-    return result.sort((a, b) => (a.displayType === "STANDARD" ? -1 : 1));
-  };
 
   return (
     <div id="calculator" className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-[440px]">
@@ -164,6 +137,19 @@ export default function BookingForm() {
             />
           </div>
         ))}
+      </div>
+
+      {/* Mobile Number */}
+      <div className="mb-3">
+        <label className="block text-[11px] font-semibold text-gray-500 mb-1">Mobile Number</label>
+        <input
+          type="tel"
+          maxLength={10}
+          placeholder="Enter 10-digit mobile number"
+          value={form.phoneNumber}
+          onChange={(e) => patch({ phoneNumber: e.target.value.replace(/\D/g, "") })}
+          className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#FF7A00] focus:ring-2 focus:ring-[#FF7A00]/20 transition-all text-[#111827]"
+        />
       </div>
 
       {/* Toggle pair */}
@@ -266,58 +252,6 @@ export default function BookingForm() {
         )}
       </button>
 
-      {quotes && quotes.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="mt-5 space-y-3 max-h-[300px] overflow-y-auto pr-1"
-        >
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-1">
-            Available Rates (Billed: {quotes[0].billedWeight.toFixed(2)} kg)
-          </p>
-          {getProcessedQuotes().map((q) => {
-            const isExpress = q.displayType === "EXPRESS";
-            const Icon = isExpress ? Zap : Truck;
-            return (
-              <div
-                key={q.courierId}
-                className="bg-[#F8FAFC] border border-gray-100 rounded-xl p-3.5 flex items-center justify-between hover:border-[#FF7A00]/30 transition-colors animate-fade-in"
-              >
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-[#FF7A00]/10 rounded-xl flex items-center justify-center">
-                    <Icon className="w-5 h-5 text-[#FF7A00]" />
-                  </div>
-                  <div>
-                    <h4 className="font-extrabold text-gray-900 text-sm">{q.displayName}</h4>
-                    <p className="text-[11px] text-gray-400">ETA: {q.etaDays} days • Insured & Secure</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className="text-[#FF7A00] font-extrabold text-base block">
-                    {formatCurrency(q.total)}
-                  </span>
-                  <button
-                    onClick={() => {
-                      sessionStorage.setItem("bookingFormState", JSON.stringify(form));
-                      sessionStorage.setItem("selectedQuote", JSON.stringify(q));
-                      router.push(`/book`);
-                    }}
-                    className="text-[11px] bg-gray-950 text-white font-bold px-3 py-1 rounded hover:bg-[#FF7A00] transition-colors mt-0.5 cursor-pointer"
-                  >
-                    Book
-                  </button>
-                </div>
-              </div>
-            );
-          })}
-        </motion.div>
-      )}
-
-      {quotes && quotes.length === 0 && (
-        <p className="text-xs text-amber-600 bg-amber-50 px-3 py-2.5 rounded-lg mt-3">
-          No courier partners currently service this zone combination.
-        </p>
-      )}
     </div>
   );
 }

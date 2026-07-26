@@ -1,0 +1,10 @@
+URI: mongodb://127.0.0.1:27017/pickmyorder
+Error: 
+Invalid `prisma.user.findMany()` invocation in
+/Users/guruprasad/Downloads/PickMyOrder/prisma/check_db.ts:20:37
+
+  17 async function main() {
+  18   try {
+  19     console.log("Using MONGODB_URI:", process.env.MONGODB_URI);
+→ 20     const users = await prisma.user.findMany(
+Raw query failed. Code: `unknown`. Message: `Kind: Server selection timeout: No available servers. Topology: { Type: Unknown, Servers: [ { Address: 127.0.0.1:27017, Type: Unknown, Error: Kind: I/O error: Operation not permitted (os error 1), labels: {}, source: None } ] }, labels: {}, source: None`

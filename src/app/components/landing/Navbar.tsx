@@ -36,13 +36,13 @@ export default function Navbar() {
           : "bg-[#111827] py-2"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-5 sm:px-8 flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-5 sm:px-8 flex items-center justify-between h-16 sm:h-20">
         <div className="flex items-center gap-2.5">
           <Link href="/">
             <img
               src="/logo-icon.png"
               alt="PickMyOrder Logo"
-              className="h-8 object-contain flex-shrink-0 cursor-pointer"
+              className="h-10 sm:h-12 w-auto object-contain flex-shrink-0 cursor-pointer"
             />
           </Link>
         </div>

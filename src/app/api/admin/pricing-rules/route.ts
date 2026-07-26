@@ -79,7 +79,6 @@ export async function POST(request: Request) {
 
     const body = await request.json();
     const createSchema = z.object({
-      courierPartnerId: z.string().min(1, "Courier Partner required"),
       zoneId: z.string().min(1, "Zone required"),
       serviceTypeId: z.string().min(1, "Service Type required"),
       basePrice: z.coerce.number().min(0),
@@ -92,9 +91,24 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: parsed.error.errors[0].message }, { status: 400 });
     }
 
+    let defaultCourier = await prisma.courierPartner.findFirst({
+      where: { code: 'PICKMYCOURIER' }
+    });
+    
+    if (!defaultCourier) {
+      defaultCourier = await prisma.courierPartner.create({
+        data: {
+          name: 'PickMyCourier',
+          code: 'PICKMYCOURIER',
+          priority: 1,
+          isActive: true
+        }
+      });
+    }
+
     const newRule = await prisma.pricingRule.create({
       data: {
-        courierPartnerId: parsed.data.courierPartnerId,
+        courierPartnerId: defaultCourier.id,
         zoneId: parsed.data.zoneId,
         serviceTypeId: parsed.data.serviceTypeId,
         basePrice: parsed.data.basePrice,

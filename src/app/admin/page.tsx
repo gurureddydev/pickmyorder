@@ -21,11 +21,13 @@ import {
   Image as ImageIcon,
   Film,
   Trash2,
+  FileText,
+  Globe,
 } from "lucide-react";
 import { motion } from "motion/react";
 
 // Tab types
-type Tab = "dashboard" | "orders" | "couriers" | "pricing" | "pincodes" | "messages" | "media";
+type Tab = "dashboard" | "orders" | "pricing" | "pincodes" | "messages" | "media" | "quotations";
 
 export default function AdminPanel() {
   const { data: session } = useSession();
@@ -36,27 +38,25 @@ export default function AdminPanel() {
 
   // Data states
   const [stats, setStats] = useState<any>(null);
-  const [courierPerformance, setCourierPerformance] = useState<any[]>([]);
   const [revenueData, setRevenueData] = useState<any[]>([]);
+  const [orderData, setOrderData] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
-  const [couriers, setCouriers] = useState<any[]>([]);
   const [pricingRules, setPricingRules] = useState<any[]>([]);
   const [pincodes, setPincodes] = useState<any[]>([]);
   const [pincodeSearch, setPincodeSearch] = useState("");
   const [bulkPincodesJson, setBulkPincodesJson] = useState("");
   const [contactMessages, setContactMessages] = useState<any[]>([]);
+  const [quotations, setQuotations] = useState<any[]>([]);
 
   // Auxiliary data
   const [zones, setZones] = useState<any[]>([]);
   const [serviceTypes, setServiceTypes] = useState<any[]>([]);
 
   // Creation forms
-  const [isAddingCourier, setIsAddingCourier] = useState(false);
-  const [newCourier, setNewCourier] = useState({ name: "", code: "", priority: 1, trackingUrl: "" });
 
   const [isAddingPricingRule, setIsAddingPricingRule] = useState(false);
-  const [newPricingRule, setNewPricingRule] = useState({ courierPartnerId: "", zoneId: "", serviceTypeId: "", basePrice: "", additionalKgPrice: "", fuelSurchargePercent: "" });
-
+  const [newPricingRule, setNewPricingRule] = useState({ zoneId: "", serviceTypeId: "", basePrice: "", additionalKgPrice: "", fuelSurchargePercent: "" });
+  
   // Media states
   const [mediaList, setMediaList] = useState<any[]>([]);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
@@ -66,7 +66,6 @@ export default function AdminPanel() {
   const [uploading, setUploading] = useState(false);
 
   // Selected entities for editing
-  const [editingCourier, setEditingCourier] = useState<any | null>(null);
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
   const [orderUpdate, setOrderUpdate] = useState({
     status: "",
@@ -87,11 +86,11 @@ export default function AdminPanel() {
     try {
       const res = await fetch("/api/admin/dashboard");
       const data = await res.json();
-      if (data.success) {
-        setStats(data.stats);
-        setCourierPerformance(data.courierPerformance);
-        setRevenueData(data.revenueData);
-      }
+        if (data.success) {
+          setStats(data.stats);
+          setRevenueData(data.revenueData || []);
+          setOrderData(data.orderData || []);
+        }
     } catch (err) {
       console.error(err);
     }
@@ -107,10 +106,6 @@ export default function AdminPanel() {
         const res = await fetch("/api/admin/orders");
         const data = await res.json();
         if (data.success) setOrders(data.orders);
-      } else if (activeTab === "couriers") {
-        const res = await fetch("/api/admin/couriers");
-        const data = await res.json();
-        if (data.success) setCouriers(data.couriers);
       } else if (activeTab === "pricing") {
         const res = await fetch("/api/admin/pricing-rules");
         const data = await res.json();
@@ -131,6 +126,10 @@ export default function AdminPanel() {
         const res = await fetch("/api/admin/media");
         const data = await res.json();
         if (data.success) setMediaList(data.media);
+      } else if (activeTab === "quotations") {
+        const res = await fetch("/api/admin/quotes");
+        const data = await res.json();
+        if (data.success) setQuotations(data.quotes);
       }
     } catch (err) {
       console.error(err);
@@ -144,87 +143,36 @@ export default function AdminPanel() {
     fetchTabItems();
   }, [activeTab]);
 
-  // Handle courier toggle/priority update
-  const handleCourierUpdate = async (id: string, updates: any) => {
+  // Handle deletions
+  const handleOrderDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this order?")) return;
     try {
-      const res = await fetch("/api/admin/couriers", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id, ...updates }),
-      });
+      const res = await fetch(`/api/admin/orders?id=${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        setMessage("Courier configuration updated successfully.");
+        setMessage("Order deleted successfully.");
         fetchTabItems();
+      } else {
+        setError(data.error || "Failed to delete order.");
       }
     } catch (err) {
-      console.error(err);
+      setError("An error occurred while deleting order.");
     }
   };
 
-  const handleCourierCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleQuoteDelete = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this quotation?")) return;
     try {
-      const res = await fetch("/api/admin/couriers", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(newCourier),
-      });
+      const res = await fetch(`/api/admin/quotes?id=${id}`, { method: "DELETE" });
       const data = await res.json();
       if (data.success) {
-        setMessage("Courier created successfully.");
-        setIsAddingCourier(false);
-        setNewCourier({ name: "", code: "", priority: 1, trackingUrl: "" });
+        setMessage("Quotation deleted successfully.");
         fetchTabItems();
       } else {
-        setError(data.error || "Failed to create courier.");
+        setError(data.error || "Failed to delete quotation.");
       }
     } catch (err) {
-      setError("An error occurred while creating courier.");
-    }
-  };
-
-  const handleCourierEditSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!editingCourier) return;
-    try {
-      const res = await fetch("/api/admin/couriers", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          id: editingCourier.id,
-          name: editingCourier.name,
-          code: editingCourier.code,
-          priority: editingCourier.priority,
-          trackingUrl: editingCourier.trackingUrl,
-        }),
-      });
-      const data = await res.json();
-      if (data.success) {
-        setMessage("Courier updated successfully.");
-        setEditingCourier(null);
-        fetchTabItems();
-      } else {
-        setError(data.error || "Failed to update courier.");
-      }
-    } catch (err) {
-      setError("An error occurred while updating courier.");
-    }
-  };
-
-  const handleCourierDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this courier?")) return;
-    try {
-      const res = await fetch(`/api/admin/couriers?id=${id}`, { method: "DELETE" });
-      const data = await res.json();
-      if (data.success) {
-        setMessage("Courier deleted successfully.");
-        fetchTabItems();
-      } else {
-        setError(data.error || "Failed to delete courier.");
-      }
-    } catch (err) {
-      setError("An error occurred while deleting courier.");
+      setError("An error occurred while deleting quotation.");
     }
   };
 
@@ -292,7 +240,7 @@ export default function AdminPanel() {
       if (data.success) {
         setMessage("Pricing rule created successfully.");
         setIsAddingPricingRule(false);
-        setNewPricingRule({ courierPartnerId: "", zoneId: "", serviceTypeId: "", basePrice: "", additionalKgPrice: "", fuelSurchargePercent: "" });
+        setNewPricingRule({ zoneId: "", serviceTypeId: "", basePrice: "", additionalKgPrice: "", fuelSurchargePercent: "" });
         fetchTabItems();
       } else {
         setError(data.error || "Failed to create pricing rule.");
@@ -434,11 +382,11 @@ export default function AdminPanel() {
   const tabs: Array<{ key: Tab; label: string; icon: any }> = [
     { key: "dashboard", label: "Overview", icon: LayoutDashboard },
     { key: "orders", label: "Orders Ledger", icon: ShoppingBag },
-    { key: "couriers", label: "Courier Partners", icon: Truck },
     { key: "pricing", label: "Pricing Engine", icon: DollarSign },
     { key: "pincodes", label: "Pincodes Registry", icon: MapPin },
     { key: "messages", label: "Messages", icon: MessageSquare },
     { key: "media", label: "Media Library", icon: ImageIcon },
+    { key: "quotations", label: "Quotations", icon: FileText },
   ];
 
   return (
@@ -507,8 +455,10 @@ export default function AdminPanel() {
         {activeTab === "dashboard" && stats && (
           <div className="space-y-8">
             <h1 className="text-2xl font-black text-gray-900">Dashboard Metrics Overview</h1>
-            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {[
+                { title: "Total Website Visits", val: stats.totalVisits || 0, icon: Globe, color: "text-indigo-600 bg-indigo-50" },
+                { title: "Quotations Generated", val: stats.totalQuotations || 0, icon: FileText, color: "text-pink-600 bg-pink-50" },
                 { title: "Total Booked Revenue", val: `₹${Math.round(stats.totalRevenue).toLocaleString("en-IN")}`, icon: DollarSign, color: "text-emerald-600 bg-emerald-50" },
                 { title: "Total Shipments Scheduled", val: stats.totalOrders, icon: ShoppingBag, color: "text-blue-600 bg-blue-50" },
                 { title: "Pending Pickups", val: stats.pendingOrders, icon: RefreshCw, color: "text-orange-600 bg-orange-50" },
@@ -529,25 +479,26 @@ export default function AdminPanel() {
               })}
             </div>
 
-            {/* Courier Performance & Mock Analytics */}
+            {/* Analytics Charts */}
             <div className="grid lg:grid-cols-2 gap-8">
-              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm">
-                <h3 className="font-bold text-gray-900 text-sm mb-4">Courier Distribution Performance</h3>
-                <div className="space-y-4">
-                  {courierPerformance.map((c) => (
-                    <div key={c.code} className="flex items-center justify-between text-xs font-semibold text-gray-700">
-                      <span>{c.name}</span>
-                      <div className="flex items-center gap-2 w-2/3">
-                        <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden">
-                          <div
-                            className="bg-[#FF7A00] h-full"
-                            style={{ width: `${stats.totalOrders ? (c.ordersCount / stats.totalOrders) * 100 : 0}%` }}
-                          />
-                        </div>
-                        <span className="shrink-0">{c.ordersCount} orders</span>
+              <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm flex flex-col justify-between">
+                <div>
+                  <h3 className="font-bold text-gray-900 text-sm mb-2">Orders Trend (Last 7 Days)</h3>
+                  <p className="text-xs text-gray-400">Comparing total orders placed day by day.</p>
+                </div>
+                <div className="flex items-end gap-3 pt-6 h-40">
+                  {orderData.map((d, i) => {
+                    const maxOrders = Math.max(...orderData.map(o => o.orders), 1);
+                    return (
+                      <div key={i} className="flex-1 flex flex-col items-center gap-1.5 h-full justify-end">
+                        <div
+                          className="bg-blue-500/80 hover:bg-blue-500 w-full rounded-t-lg transition-all"
+                          style={{ height: `${(d.orders / maxOrders) * 100}%` }}
+                        />
+                        <span className="text-[10px] text-gray-400 font-bold">{d.day}</span>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -685,15 +636,23 @@ export default function AdminPanel() {
                         </span>
                       </td>
                       <td className="py-4">
-                        <button
-                          onClick={() => {
-                            setSelectedOrder(o);
-                            setOrderUpdate({ status: o.status, location: "", description: "" });
-                          }}
-                          className="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer"
-                        >
-                          Edit Status
-                        </button>
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => {
+                              setSelectedOrder(o);
+                              setOrderUpdate({ status: o.status, location: "", description: "" });
+                            }}
+                            className="text-xs font-bold text-[#FF7A00] hover:underline cursor-pointer"
+                          >
+                            Edit Status
+                          </button>
+                          <button
+                            onClick={() => handleOrderDelete(o.id)}
+                            className="text-xs font-bold text-red-500 hover:underline cursor-pointer flex items-center gap-1"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -703,110 +662,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* Tab 3: Courier configs */}
-        {activeTab === "couriers" && (
-          <div className="space-y-8">
-            <div className="flex justify-between items-center">
-              <h1 className="text-2xl font-black text-gray-900">Courier Partner Configurations</h1>
-              <button 
-                onClick={() => setIsAddingCourier(!isAddingCourier)}
-                className="bg-[#111827] text-white px-4 py-2 rounded-xl text-xs font-bold cursor-pointer hover:bg-gray-800 transition-colors"
-              >
-                + Add Courier
-              </button>
-            </div>
 
-            {isAddingCourier && (
-              <form onSubmit={handleCourierCreate} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
-                <h3 className="font-bold text-gray-900 text-sm">Add New Courier</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Name</label>
-                    <input type="text" value={newCourier.name} onChange={(e) => setNewCourier({...newCourier, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BlueDart" required />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Code</label>
-                    <input type="text" value={newCourier.code} onChange={(e) => setNewCourier({...newCourier, code: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BLUEDART" required />
-                  </div>
-                </div>
-                <div className="flex gap-2 justify-end pt-2">
-                  <button type="button" onClick={() => setIsAddingCourier(false)} className="text-xs text-gray-500 hover:underline cursor-pointer">Cancel</button>
-                  <button type="submit" className="bg-[#FF7A00] text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Save</button>
-                </div>
-              </form>
-            )}
-
-            {editingCourier && (
-              <form onSubmit={handleCourierEditSubmit} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-lg space-y-4">
-                <h3 className="font-bold text-gray-900 text-sm">Edit Courier</h3>
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Name</label>
-                    <input type="text" value={editingCourier.name} onChange={(e) => setEditingCourier({...editingCourier, name: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BlueDart" required />
-                  </div>
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Code</label>
-                    <input type="text" value={editingCourier.code} onChange={(e) => setEditingCourier({...editingCourier, code: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" placeholder="e.g. BLUEDART" required />
-                  </div>
-                </div>
-                <div className="flex gap-2 justify-end pt-2">
-                  <button type="button" onClick={() => setEditingCourier(null)} className="text-xs text-gray-500 hover:underline cursor-pointer">Cancel</button>
-                  <button type="submit" className="bg-[#FF7A00] text-white text-xs font-bold px-4 py-2 rounded-lg cursor-pointer flex items-center gap-1"><Save className="w-3.5 h-3.5" /> Update</button>
-                </div>
-              </form>
-            )}
-
-            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    <th className="pb-3">Name</th>
-                    <th className="pb-3">Code</th>
-                    <th className="pb-3">Priority</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3">API Integration</th>
-                    <th className="pb-3">Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {couriers.map((c) => (
-                    <tr key={c.id}>
-                      <td className="py-4 font-bold text-gray-900">{c.name}</td>
-                      <td className="py-4 text-gray-500 font-semibold">{c.code}</td>
-                      <td className="py-4">
-                        <input
-                          type="number"
-                          value={c.priority}
-                          onChange={(e) => handleCourierUpdate(c.id, { priority: e.target.value })}
-                          className="w-16 border border-gray-200 rounded p-1 text-center font-bold text-xs"
-                        />
-                      </td>
-                      <td className="py-4">
-                        <button
-                          onClick={() => handleCourierUpdate(c.id, { isActive: !c.isActive })}
-                          className={`text-xs font-bold px-3 py-1 rounded-full cursor-pointer ${
-                            c.isActive ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
-                          }`}
-                        >
-                          {c.isActive ? "Active" : "Disabled"}
-                        </button>
-                      </td>
-                      <td className="py-4 text-xs text-gray-400">Mock Mode (Plug-in ready)</td>
-                      <td className="py-4 flex gap-2">
-                        <button onClick={() => setEditingCourier(c)} className="text-blue-500 hover:text-blue-700 cursor-pointer p-1 rounded-lg hover:bg-blue-50 text-xs font-bold">
-                          Edit
-                        </button>
-                        <button onClick={() => handleCourierDelete(c.id)} className="text-red-400 hover:text-red-600 cursor-pointer p-1 rounded-lg hover:bg-red-50">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
 
         {/* Tab 4: Pricing rules */}
         {activeTab === "pricing" && (
@@ -825,13 +681,6 @@ export default function AdminPanel() {
               <form onSubmit={handlePricingCreate} className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm max-w-2xl space-y-4">
                 <h3 className="font-bold text-gray-900 text-sm">Add New Pricing Rule</h3>
                 <div className="grid grid-cols-3 gap-3">
-                  <div>
-                    <label className="block text-[11px] font-semibold text-gray-500 mb-1">Courier</label>
-                    <select value={newPricingRule.courierPartnerId} onChange={(e) => setNewPricingRule({...newPricingRule, courierPartnerId: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required>
-                      <option value="">Select...</option>
-                      {couriers.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-                    </select>
-                  </div>
                   <div>
                     <label className="block text-[11px] font-semibold text-gray-500 mb-1">Zone</label>
                     <select value={newPricingRule.zoneId} onChange={(e) => setNewPricingRule({...newPricingRule, zoneId: e.target.value})} className="w-full border border-gray-200 rounded-lg p-2 text-sm focus:outline-none" required>
@@ -913,7 +762,6 @@ export default function AdminPanel() {
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
-                    <th className="pb-3">Courier</th>
                     <th className="pb-3">Zone Route</th>
                     <th className="pb-3">Service Type</th>
                     <th className="pb-3">Base Price</th>
@@ -925,7 +773,6 @@ export default function AdminPanel() {
                 <tbody className="divide-y divide-gray-50">
                   {pricingRules.slice(0, 50).map((r) => (
                     <tr key={r.id}>
-                      <td className="py-4 font-bold text-gray-900">{r.courierPartner.name}</td>
                       <td className="py-4 text-gray-700">{r.zone.name}</td>
                       <td className="py-4 text-gray-500 capitalize">{r.serviceType.name}</td>
                       <td className="py-4 font-bold text-gray-800">₹{r.basePrice}</td>
@@ -1243,6 +1090,62 @@ export default function AdminPanel() {
                 <p className="text-gray-500 font-medium">No media uploaded yet.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {/* Tab 8: Quotations */}
+        {activeTab === "quotations" && (
+          <div className="space-y-8">
+            <div className="flex justify-between items-center">
+              <h1 className="text-2xl font-black text-gray-900">User Quotations Registry</h1>
+              <button onClick={fetchTabItems} className="bg-gray-100 p-2 rounded-xl text-gray-500 hover:text-gray-900 cursor-pointer">
+                <RefreshCw className="w-4 h-4" />
+              </button>
+            </div>
+            <div className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm overflow-x-auto">
+              <table className="w-full text-left text-sm">
+                <thead>
+                  <tr className="border-b border-gray-100 text-[10px] font-bold text-gray-400 uppercase tracking-wider">
+                    <th className="pb-3">Date</th>
+                    <th className="pb-3">Phone Number</th>
+                    <th className="pb-3">Pickup Pin</th>
+                    <th className="pb-3">Dest Pin</th>
+                    <th className="pb-3">Details</th>
+                    <th className="pb-3 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {quotations && quotations.length > 0 ? (
+                    quotations.map((q) => (
+                      <tr key={q.id} className="hover:bg-gray-50/50">
+                        <td className="py-4 text-gray-700 whitespace-nowrap">{new Date(q.createdAt).toLocaleString()}</td>
+                        <td className="py-4 font-bold text-gray-900">{q.phoneNumber}</td>
+                        <td className="py-4 text-gray-500">{q.pickupPincode}</td>
+                        <td className="py-4 text-gray-500">{q.destPincode}</td>
+                        <td className="py-4 text-gray-700">
+                          <span className="text-xs bg-gray-100 px-2 py-1 rounded font-medium">
+                            {q.weight}kg, {q.packageType}, {q.transport}
+                          </span>
+                        </td>
+                        <td className="py-4 text-right">
+                          <button
+                            onClick={() => handleQuoteDelete(q.id)}
+                            className="text-xs font-bold text-red-500 hover:bg-red-50 p-1.5 rounded-lg cursor-pointer inline-flex items-center"
+                            title="Delete Quotation"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))
+                  ) : (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-gray-500">No quotations found.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         )}
       </main>

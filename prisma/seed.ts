@@ -1,7 +1,16 @@
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
+import dotenv from "dotenv";
 
-const prisma = new PrismaClient();
+dotenv.config();
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/pickmyorder"
+    }
+  }
+});
 
 async function main() {
   console.log("Seeding started...");
@@ -44,93 +53,79 @@ async function main() {
   ]);
   console.log(`Created ${serviceTypes.length} service types.`);
 
-  // 4. Create Zones
-  const zoneA = await prisma.zone.create({ data: { name: "Zone A", description: "Within same city limits" } });
-  const zoneB = await prisma.zone.create({ data: { name: "Zone B", description: "Intra-state (same state, different city)" } });
-  const zoneC = await prisma.zone.create({ data: { name: "Zone C", description: "Metro to Metro (major cities across India)" } });
-  const zoneD = await prisma.zone.create({ data: { name: "Zone D", description: "Rest of India (remote areas & north east)" } });
-  console.log("Created Zones A, B, C, D.");
+  // 4. Create Unified Zones
+  const zoneDomLocal = await prisma.zone.create({ data: { name: "Domestic - Local", description: "Within same city limits" } });
+  const zoneDomRegional = await prisma.zone.create({ data: { name: "Domestic - Regional", description: "Within same state" } });
+  const zoneDomNational = await prisma.zone.create({ data: { name: "Domestic - National", description: "Across India" } });
+  const zoneIntA = await prisma.zone.create({ data: { name: "International - Zone A", description: "North America, UK" } });
+  const zoneIntB = await prisma.zone.create({ data: { name: "International - Zone B", description: "Europe, Asia, Middle East" } });
+  const zoneIntC = await prisma.zone.create({ data: { name: "International - Zone C", description: "Rest of the World" } });
+  console.log("Created 6 Unified Zones.");
+  
+  const allZones = [zoneDomLocal, zoneDomRegional, zoneDomNational, zoneIntA, zoneIntB, zoneIntC];
 
-  // 5. Create Courier Partners
-  const couriers = [
-    { name: "Blue Dart", code: "BLUEDART", priority: 1, logo: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=100&h=100&fit=crop" },
-    { name: "Delhivery", code: "DELHIVERY", priority: 2, logo: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop" },
-    { name: "DTDC", code: "DTDC", priority: 3, logo: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop" },
-    { name: "XpressBees", code: "XPRESSBEES", priority: 4, logo: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop" },
-    { name: "Ecom Express", code: "ECOMEXPRESS", priority: 5, logo: "https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?w=100&h=100&fit=crop" },
-    { name: "India Post", code: "INDIAPOST", priority: 6, logo: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop" },
-  ];
-
-  const dbCouriers = [];
-  for (const c of couriers) {
-    const courier = await prisma.courierPartner.create({
-      data: {
-        name: c.name,
-        code: c.code,
-        priority: c.priority,
-        logo: c.logo,
-        isActive: true,
-      },
-    });
-    dbCouriers.push(courier);
-  }
-  console.log(`Created ${dbCouriers.length} courier partners.`);
+  // 5. Create Unified Courier Partner
+  const courier = await prisma.courierPartner.create({
+    data: {
+      name: "PickMyCourier",
+      code: "PICKMYCOURIER",
+      priority: 1,
+      isActive: true,
+    },
+  });
+  const dbCouriers = [courier];
+  console.log("Created Unified Courier: PickMyCourier.");
 
   // 6. Create Pricing Rules (Dynamic Rates)
-  // Let's create default pricing rule for each courier per zone & service type combination
-  const transports = ["DOMESTIC", "INTERNATIONAL"];
-  for (const courier of dbCouriers) {
-    for (const zone of [zoneA, zoneB, zoneC, zoneD]) {
-      for (const service of serviceTypes) {
-        // Compute some varying base prices to make them look distinct and dynamic
-        let baseMultiplier = 1.0;
-        if (courier.code === "BLUEDART") baseMultiplier = 1.4; // Premium
-        if (courier.code === "DELHIVERY") baseMultiplier = 1.1;
-        if (courier.code === "INDIAPOST") baseMultiplier = 0.7; // Economy
+  for (const zone of allZones) {
+    for (const service of serviceTypes) {
+      const isInternational = zone.name.startsWith("International");
+      const transport = isInternational ? "INTERNATIONAL" : "DOMESTIC";
+      
+      let baseMultiplier = 1.0;
+      if (zone.name === "Domestic - Regional") baseMultiplier = 1.5;
+      if (zone.name === "Domestic - National") baseMultiplier = 2.0;
+      if (zone.name === "International - Zone A") baseMultiplier = 10.0;
+      if (zone.name === "International - Zone B") baseMultiplier = 12.0;
+      if (zone.name === "International - Zone C") baseMultiplier = 15.0;
 
-        let zoneMultiplier = 1.0;
-        if (zone.name === "Zone B") zoneMultiplier = 1.5;
-        if (zone.name === "Zone C") zoneMultiplier = 2.0;
-        if (zone.name === "Zone D") zoneMultiplier = 2.8;
+      let serviceMultiplier = 1.0;
+      if (service.code === "document") serviceMultiplier = 0.8;
 
-        let serviceMultiplier = 1.0;
-        if (service.code === "document") serviceMultiplier = 0.8;
-
-        await prisma.pricingRule.create({
-          data: {
-            courierPartnerId: courier.id,
-            zoneId: zone.id,
-            serviceTypeId: service.id,
-            transport: "DOMESTIC",
-            basePrice: Math.round(40 * baseMultiplier * zoneMultiplier * serviceMultiplier),
-            pricePerKg: Math.round(25 * baseMultiplier * zoneMultiplier * serviceMultiplier),
-            additionalKgPrice: Math.round(20 * baseMultiplier * zoneMultiplier * serviceMultiplier),
-            minCharge: Math.round(30 * baseMultiplier),
-            maxWeight: 100.0,
-            fuelSurchargePercent: 12.0, // 12% surcharge
-            handlingCharge: service.code === "fragile" ? 50.0 : 0.0,
-            codCharge: 40.0,
-            remoteAreaCharge: zone.name === "Zone D" ? 150.0 : 0.0,
-            insurancePercent: 1.5,
-          },
-        });
-      }
+      await prisma.pricingRule.create({
+        data: {
+          courierPartnerId: courier.id,
+          zoneId: zone.id,
+          serviceTypeId: service.id,
+          transport: transport,
+          basePrice: Math.round(40 * baseMultiplier * serviceMultiplier),
+          pricePerKg: Math.round(25 * baseMultiplier * serviceMultiplier),
+          additionalKgPrice: Math.round(20 * baseMultiplier * serviceMultiplier),
+          minCharge: Math.round(30 * baseMultiplier),
+          maxWeight: 100.0,
+          fuelSurchargePercent: isInternational ? 18.0 : 12.0,
+          handlingCharge: 0.0,
+          codCharge: isInternational ? 0.0 : 40.0,
+          remoteAreaCharge: 0.0,
+          insurancePercent: 1.5,
+        },
+      });
     }
   }
-  console.log("Successfully created pricing rules for all couriers, zones, and services.");
+  console.log("Successfully created pricing rules for all unified zones.");
 
   // 7. Create Sample Pincode Zones
   const pincodeData = [
-    { pincode: "560027", zoneName: "Zone A", isServiceable: true, isRemoteArea: false }, // Bengaluru Wilson Garden (Origin)
-    { pincode: "560001", zoneName: "Zone A", isServiceable: true, isRemoteArea: false }, // Bengaluru GPO
-    { pincode: "570001", zoneName: "Zone B", isServiceable: true, isRemoteArea: false }, // Mysuru (Intra-state)
-    { pincode: "400001", zoneName: "Zone C", isServiceable: true, isRemoteArea: false }, // Mumbai (Metro)
-    { pincode: "110001", zoneName: "Zone C", isServiceable: true, isRemoteArea: false }, // Delhi (Metro)
-    { pincode: "600001", zoneName: "Zone C", isServiceable: true, isRemoteArea: false }, // Chennai (Metro)
-    { pincode: "700001", zoneName: "Zone C", isServiceable: true, isRemoteArea: false }, // Kolkata (Metro)
-    { pincode: "799001", zoneName: "Zone D", isServiceable: true, isRemoteArea: true },  // Agartala (Remote Area)
-    { pincode: "190001", zoneName: "Zone D", isServiceable: true, isRemoteArea: true },  // Srinagar (Remote Area)
-    { pincode: "999999", zoneName: "Zone D", isServiceable: false, isRemoteArea: false }, // Unserviceable
+    { pincode: "560027", zoneName: "Domestic - Local", isServiceable: true, isRemoteArea: false }, // Bengaluru Wilson Garden (Origin)
+    { pincode: "560001", zoneName: "Domestic - Local", isServiceable: true, isRemoteArea: false }, // Bengaluru GPO
+    { pincode: "570001", zoneName: "Domestic - Regional", isServiceable: true, isRemoteArea: false }, // Mysuru (Intra-state)
+    { pincode: "400001", zoneName: "Domestic - National", isServiceable: true, isRemoteArea: false }, // Mumbai (Metro)
+    { pincode: "110001", zoneName: "Domestic - National", isServiceable: true, isRemoteArea: false }, // Delhi (Metro)
+    { pincode: "600001", zoneName: "Domestic - National", isServiceable: true, isRemoteArea: false }, // Chennai (Metro)
+    { pincode: "700001", zoneName: "Domestic - National", isServiceable: true, isRemoteArea: false }, // Kolkata (Metro)
+    { pincode: "799001", zoneName: "Domestic - National", isServiceable: true, isRemoteArea: true },  // Agartala (Remote Area)
+    { pincode: "190001", zoneName: "Domestic - National", isServiceable: true, isRemoteArea: true },  // Srinagar (Remote Area)
+    { pincode: "999999", zoneName: "Domestic - National", isServiceable: false, isRemoteArea: false }, // Unserviceable
   ];
 
   for (const pin of pincodeData) {

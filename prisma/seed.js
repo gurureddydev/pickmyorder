@@ -1,7 +1,14 @@
 const { PrismaClient } = require("@prisma/client");
 const bcrypt = require("bcryptjs");
+require("dotenv").config();
 
-const prisma = new PrismaClient();
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.MONGODB_URI || "mongodb://127.0.0.1:27017/pickmyorder"
+    }
+  }
+});
 
 async function main() {
   console.log("Seeding started...");

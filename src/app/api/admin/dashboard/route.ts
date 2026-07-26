@@ -21,19 +21,9 @@ export async function GET(request: Request) {
     });
     const totalRevenue = totalRevenueResult._sum.totalAmount || 0;
 
-    const courierStats = await prisma.courierPartner.findMany({
-      include: {
-        _count: {
-          select: { orders: true },
-        },
-      },
-    });
-
-    const courierPerformance = courierStats.map((c) => ({
-      name: c.name,
-      code: c.code,
-      ordersCount: c._count.orders,
-    }));
+    const visitsSetting = await prisma.siteSetting.findUnique({ where: { key: "TOTAL_VISITS" } });
+    const totalVisits = visitsSetting ? parseInt(visitsSetting.value, 10) : 0;
+    const totalQuotations = await prisma.quote.count();
 
     // Generate real chart data from recent orders
     const thirtyDaysAgo = new Date();
@@ -79,8 +69,9 @@ export async function GET(request: Request) {
         deliveredOrders,
         cancelledOrders,
         totalRevenue,
+        totalVisits,
+        totalQuotations,
       },
-      courierPerformance,
       revenueData,
       orderData,
     });

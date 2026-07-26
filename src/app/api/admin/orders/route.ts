@@ -78,3 +78,23 @@ export async function PUT(request: Request) {
     return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
   }
 }
+
+export async function DELETE(request: Request) {
+  try {
+    const session = await auth();
+    if (!session || ((session.user as any)?.role !== "ADMIN" && (session.user as any)?.role !== "STAFF")) {
+      return NextResponse.json({ success: false, error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const id = searchParams.get("id");
+    if (!id) return NextResponse.json({ success: false, error: "Missing id parameter" }, { status: 400 });
+
+    await prisma.order.delete({ where: { id } });
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Admin Orders DELETE Error:", error);
+    return NextResponse.json({ success: false, error: "Internal server error" }, { status: 500 });
+  }
+}

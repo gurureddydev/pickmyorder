@@ -277,26 +277,7 @@ function HeroSection() {
         </div>
       </div>
 
-      {/* Live operations banner */}
-      <div className="relative z-10 bg-[#0d1520] border-t border-white/5">
-        <div className="max-w-7xl mx-auto px-5 sm:px-8 py-5 flex items-center justify-between overflow-x-auto gap-8">
-          <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] whitespace-nowrap flex items-center gap-2">
-            <span className="w-1.5 h-1.5 bg-emerald-400 rounded-full animate-pulse" />
-            Our Courier Partners
-          </p>
-          <div className="flex items-center gap-6">
-            {PARTNER_LOGOS.map((p) => (
-              <div
-                key={p.code}
-                className="bg-white/5 border border-white/8 rounded-lg px-4 py-2 flex items-center gap-2 whitespace-nowrap hover:bg-white/10 transition-colors"
-              >
-                <span className="text-[#FF7A00] font-black text-xs">{p.code}</span>
-                <span className="text-white/50 text-xs font-medium">{p.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
+
     </section>
   );
 }
@@ -928,6 +909,9 @@ export default function App() {
       .then(data => {
         if (data.success) setMediaList(data.media);
       });
+
+    // Track visit
+    fetch("/api/analytics/visit", { method: "POST" }).catch(console.error);
   }, []);
 
   return (
