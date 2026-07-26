@@ -51,7 +51,7 @@ export async function POST(request: Request) {
     try {
       await prisma.quote.create({
         data: {
-          phoneNumber: validation.data.phoneNumber,
+          phone: validation.data.phoneNumber,
           pickupPincode: validation.data.pickupPin,
           destPincode: validation.data.destPin,
           packageType: validation.data.packageType,
