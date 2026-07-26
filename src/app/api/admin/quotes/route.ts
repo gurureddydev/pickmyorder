@@ -14,7 +14,7 @@ export async function GET(request: Request) {
       take: 200,
       include: {
         user: {
-          select: { name: true, email: true },
+          select: { name: true, email: true, phone: true },
         },
       },
     });
@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       success: true,
       quotes: quotes.map((q) => ({
         id: q.id,
-        phoneNumber: q.phoneNumber || "N/A",
+        phone: q.user?.phone || "N/A",
         pickupPincode: q.pickupPincode,
         destPincode: q.destPincode,
         packageType: q.packageType,
