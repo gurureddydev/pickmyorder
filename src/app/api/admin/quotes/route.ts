@@ -23,7 +23,7 @@ export async function GET(request: Request) {
       success: true,
       quotes: quotes.map((q) => ({
         id: q.id,
-        phone: q.user?.phone || "N/A",
+        phone: q.phone || q.user?.phone || "N/A",
         pickupPincode: q.pickupPincode,
         destPincode: q.destPincode,
         packageType: q.packageType,

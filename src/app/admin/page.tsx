@@ -606,7 +606,6 @@ export default function AdminPanel() {
                     <th className="pb-3">Order Number</th>
                     <th className="pb-3">AWB</th>
                     <th className="pb-3">Sender</th>
-                    <th className="pb-3">Courier</th>
                     <th className="pb-3">Receiver</th>
                     <th className="pb-3">Total Amount</th>
                     <th className="pb-3">Status</th>
@@ -623,7 +622,6 @@ export default function AdminPanel() {
                         <div className="text-[10px] text-gray-500">{o.pickupPhone}</div>
                         <div className="text-[10px] text-gray-400 max-w-[120px] truncate" title={`${o.pickupAddress}, ${o.pickupPin}`}>{o.pickupAddress}, {o.pickupPin}</div>
                       </td>
-                      <td className="py-4 text-gray-700">{o.courierPartner?.name}</td>
                       <td className="py-4 text-gray-700">
                         <div className="font-semibold text-xs">{o.destName}</div>
                         <div className="text-[10px] text-gray-500">{o.destPhone}</div>
@@ -1119,7 +1117,7 @@ export default function AdminPanel() {
                     quotations.map((q) => (
                       <tr key={q.id} className="hover:bg-gray-50/50">
                         <td className="py-4 text-gray-700 whitespace-nowrap">{new Date(q.createdAt).toLocaleString()}</td>
-                        <td className="py-4 font-bold text-gray-900">{q.phoneNumber}</td>
+                        <td className="py-4 font-bold text-gray-900">{q.phone}</td>
                         <td className="py-4 text-gray-500">{q.pickupPincode}</td>
                         <td className="py-4 text-gray-500">{q.destPincode}</td>
                         <td className="py-4 text-gray-700">
